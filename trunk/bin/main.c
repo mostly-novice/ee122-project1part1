@@ -1,47 +1,47 @@
 #include <stdio.h>
+#include "model.c"
 #include "messages.h"
 #include "constants.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 
 int main(int argc, char* argv){
+  Player *players;
+  Player *self;
+  int sockfd;
+  sockaddr serv_addr;	//TODO: implement
+  int isLogin = 0;
 
-	int sockfd;
-	sockaddr serv_addr;	//TODO: implement
 
-// Do some sanity checking of char* argv here
-	if(argc < 4){
+  if(argc < 4){
 		printf("Usage: ./client -s <server IP address> -p <server port>");
-	}
+  }
+  
+  printf("Hello Welcome to tiny World of Warcraft!\n");
 
-// socket() - returns a socket descriptor
-	sockfd = socket(PF_INET, SOCK_STREAM, 0);	//TODO: implement
+  while(!done){
+    printf("command >> ",name);
+    scanf("%s",command);
+    
+    char* tokens = strtok(command," ");
+    if (strcmp(tokens[0],"login") == 0){
+      char* name = tokens[1]; // TODO: Sanity check the input.
+      login(name);
+    } else if(strcmp(command,"move") == 0){
+    } else if(strcmp(command,"attack") == 0){
+    } else if(strcmp(command,"speak") == 0){
+    } else if(strcmp(command,"logout") == 0){
+      done = 1;
+    } else {
+      printf("WTF?\n");
+    }
+  }
 
-// connect() - connect to a remote host
-	connection_status = connect(sockfd, sockaddr *serv_addr, addrlen);	//TODO: implement
+  // socket() - returns a socket descriptor
+  sockfd = socket(PF_INET, SOCK_STREAM, 0);	//TODO: implement
 
-	
-// TODO: run a while(1) loop after a successful connection
-// 	This loop should look like: command>
-
-// dummy code
-	char name [80];
-	char command [80];
-	int done = 0;
-
-	printf("Hello!\n");
-	printf("Who are you?");
-	scanf("%s",name);
-	while(!done){
-		printf("command%s >> ",name);
-		scanf("%s",command);
-		if(strcmp(command,"exit") == 0){
-			done = 1;
-		}
-	}
-
-
-
+  // connect() - connect to a remote host
+  connection_status = connect(sockfd, sockaddr *serv_addr, addrlen);	//TODO: implement
 }
 
 
@@ -56,6 +56,32 @@ int main(int argc, char* argv){
 // @arguments: 
 // 	char* name - the name of the player. Must be alphanum-
 // 		eric and up to 9 characters. 
-char* login(char* name){
+char* login(char* name,Player * self){
+
+  // Create the player struct, initialize name
+  self->name = name;
+
+  // Build the message
+
+  // Send a login message to the server
+
+  // Block and wait for response from the server
+
+  // Once received the messages, then party!
+  // By party, I mean
+  // Check for the message type to be correct
+  // Initia0lize the player more(etc. hp, exp, location)
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
