@@ -28,7 +28,12 @@ int main(int argc, char* argv){
 	serverIP = argv[1];
 	serverPort = argv[3];
 
-	sockfd = socket(AF_INET, SOCK_STEAM, 0);
+	// socket() - returns a socket descriptor
+	sockfd = socket(PF_INET, SOCK_STREAM, 0);	//TODO: implement
+
+	// connect() - connect to a remote host
+	connection_status = connect(sockfd, sockaddr *serv_addr, addrlen);	//TODO: implement
+
 	if(sockfd < 0){
 		perror("socket() failed");
 		abort();
@@ -40,7 +45,7 @@ int main(int argc, char* argv){
 	sin.sin_addr.s_addr = inet_addr(serverIP);
 	sin.sin_port = htons(serverPort);
 
-	if(connect(sockfd,(struct sockaddr *) &sin, sizeof(sin)) < 0){
+	if(connect(sockfd,(sockaddr *serv_addr) &sin, sizeof(sin)) < 0){
 		perror("connection failed");
 		abort();
 	}else{
@@ -58,7 +63,7 @@ int main(int argc, char* argv){
 		char* tokens = strtok(command," ");
 		if (strcmp(tokens[0],"login") == 0){
 			char* name = tokens[1]; // TODO: Sanity check the input.
-			login(name);
+			login(name,self,sockfd);
 		} else if(strcmp(command,"move") == 0){
 		} else if(strcmp(command,"attack") == 0){
 		} else if(strcmp(command,"speak") == 0){
@@ -69,55 +74,101 @@ int main(int argc, char* argv){
 		}
 	}
 
-	// socket() - returns a socket descriptor
-	sockfd = socket(PF_INET, SOCK_STREAM, 0);	//TODO: implement
-
-	// connect() - connect to a remote host
-	connection_status = connect(sockfd, sockaddr *serv_addr, addrlen);	//TODO: implement
 }
 
-
+// -------------------------------------------------------------
 // login
-// @summary: Logs in with the player account. If no account,
-//   create one and logs in. Generates message: LOGIN_REQUEST
-//   
-//   The other commands will be denied by the server with the 
-//   INVALID_STATE message with the error code 0. (in other words,
-//   the player must login before doing anything else.).	
 //
-// @arguments: 
-// 	char* name - the name of the player. Must be alphanum-
-// 		eric and up to 9 characters. 
-char* login(char* name,Player * self){
+// args: 
+// 	char* name 	- the name of the player. Must be alphanum-
+//	             	  eric and up to 9 characters. 
+//	Player* self 	- the player running on the local client.
+//	int sock	- the server socket.
+//
+// @returns:
+// 	???
+// -------------------------------------------------------------
+
+char* login(char* name,Player * self,int sock){
 	char * nullTerm = "\0";
-	char 
+	char version = 0x4;
+	char* length = 0x0010;
+	char* packet;
+	char* response;
+
+	if(!check_player_name(name){
+		printf("player name %s is not valid",name);
+	}	
 
 
-	// Build the message
-		// sanity check:
-		// The name must be null-terminated. Thus, the effective maximum
-	strcat(name,nullTerm);
-	
-		// name length is 9 bytes. The name must contain only alphanumeric characters.
-	
+	packet = build_message(version,length,LOGIN_REQUEST,name);
 
 	// Send a login message to the server
-
+	int sent_bytes = send(sock, packet, sizeof(packet), 0);
+	if(sent_bytes < 0){
+		perror("send failed");
+	}
 
 	// Block and wait for response from the server
+	while(1){
+		printf("...\n");
+	}
 
 	// Once received the messages, then party!
 	// By party, I mean
 	// Check for the message type to be correct
 	// Initia0lize the player more(etc. hp, exp, location)
-	
-	// Create the player struct, initialize name
+	self->HP = getHP(response);
+	self->EXP = getEXP(response);
+	self->location = getLocation(response);
 	self->name = name;
 
 
 }
 
 
+// -------------------------------------------------------------
+// build_message
+//
+// args: 
+// 	version - 0x4 for login request.
+// 	length - 0x0010 for login request.
+// 	msg_type - LOGIN_REQUEST for ... yea.
+// 	payload - the message being sent.
+//
+// returns:
+// 	???
+// -------------------------------------------------------------
+
+char * build_message(char version, char* length, char msg_type, char* payload){
+	int message[4];
+	int i;
+	message[0] = version;
+	message[0] += (length << 4);
+	message[0] += (msg_type << 12);
+	
+	printf("version: %x\n",version);
+	printf("length: %x\n",length);
+	printf("msg_type: %x\n",msg_type);
+	printf("----------------\n");
+	printf("version:length:msg_type = %x\n",message[0]);
+
+	// fill out the payload in rows 1 - 3, leaving 1 byte for
+	//   '\0' null character and 2 bytes of padding space.
+
+	for(i = 0; i < strlen(payload); i++){
+		int messageIndex = i/4 + 1;
+		int shiftAmount = 8*(3- i % 4);
+
+		message[messageIndex] += payload[i] << shiftAmount;
+	}
+
+	printf("Message[1]: %x\n", message[1]);
+	printf("Message[2]: %x\n", message[2]);
+	printf("Message[3]: %x\n", message[3]);
+
+	return message;
+}
 
 
 
