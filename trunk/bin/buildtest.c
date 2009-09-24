@@ -41,5 +41,6 @@ int main(){
 
   printf("Hello - The message3 is %x\n", message[2]);
 
-  printf("Hello - The message4 is %x\n", message[3]);
+  char* m = itoa(message[0],m,10)
+  printf("Hello - The message4 is %x\n", m[0]);
 }
