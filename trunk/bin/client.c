@@ -6,6 +6,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include "header.h"
+
 struct Player{
   int hp;
   int exp;
@@ -13,33 +15,11 @@ struct Player{
   int y;
 };
 
-struct header {
-  unsigned char version;
-  char l;
-  char len;
-  unsigned char msgtype;
-  unsigned int payload[3];
-};
-
-struct login_reply {
-  unsigned char version;
-  unsigned char l;
-  unsigned char len;
-  unsigned char msgtype;
-
-  uint8_t error_code;
-  uint32_t hp;
-  uint32_t exp;
-  uint8_t x;
-  uint8_t y;
-  uint8_t padding;
-}__attribute__((packed));
-
 int main(int argc, char* argv[]){
 
   // Model Variables
-  struct Player *players;
-  struct Player *self;
+  struct Player * others;
+  struct Player self;
   int isLogin = 0;
   char command[80];
   char arg[80];
@@ -50,6 +30,9 @@ int main(int argc, char* argv[]){
   int serverPort;
   int done = 0;
   int status;
+
+  // Select
+  fd_set readfds;
 
   struct sockaddr_in sin;
   memset(&sin, 0, sizeof(sin));
@@ -88,8 +71,17 @@ int main(int argc, char* argv[]){
   }
 
   printf("Hello Welcome to tiny World of Warcraft!\n");
+
+
+  FD_ZERO(&readfds);
+  FD_SET(STDIN, &readfds);
+  FD_SET(sock, &readfds);
+
   while(!done){
-    select(maxfd+1,&readfds,&writefds,NULL,NULL);
+    if (select(sock+1,&readfds,&writefds,NULL,NULL) == -1){
+      perror("select");
+      return 0;
+    }
     
     if(FD_ISSET(STDIN, &readfds)){
       // Handle stdin
@@ -108,8 +100,94 @@ int main(int argc, char* argv[]){
       } else {
 	printf("WTF?\n");
       }
+
+
+
+
     } else if (FD_ISSET(sock, &readfds)){
-      // Received message
+      // Block and wait for response from the server
+      char buffer[4096];
+      int expected_data_len = sizeof(buffer);
+      int read_bytes = recv(sock,buffer,expected_data_len,0);
+
+      struct message * m = (struct message *) buffer;
+
+      // Check for the msgtype
+      switch m->msgtype {
+	case messages.LOGIN_REPLY:
+	  struct login_reply * lreply = (struct login_reply *) m->payload;
+	  if(login){
+	    // Treat it as a malformed package
+	  } else {
+	    if(lreply->error_code == 0){
+	      // use message.h
+	      self->hp = ntohs(lreply->hp);
+	      self->exp = ntohs(lreply->exp);
+	      self->x = ntohs(lreply->x);
+	      self->y = ntohs(lreply->y);
+
+	      login = true;
+	    } else if (lreply->error_code == 1){
+	      // use message.h
+	    }
+	  }
+	  break;
+
+	case messages.MOVE_NOTIFY:
+	  struct move_notify * mn = (struct move_notify *) m->payload;
+	  // If the player is not insight, and the new location is not visible;
+	  
+	  Player * p;
+	  bool found = false;
+
+	  for(p = others; p != NULL, p++){
+	    if (strcmp(p->name,mn->name)==0){
+	      found = true;
+	      break;
+	    }
+	  }
+
+	  if(!found){
+	    // Add the dude to the array
+	    // Call the dude p
+
+	    struct Player * p;
+	  }
+	  
+	  bool oldp = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5; // if the old position is in sight
+	  bool newp = abs((self->x - p->x))<5 && abs((self->y - p->y))<5; // if the new position is in sight
+	  if (oldp || newp){
+	    // update his stat
+	    if (oldp){
+	      // send out a message
+	    }
+	  } else {
+	    // Ignore
+	  }
+	  break;
+
+	case messages.ATTACK_NOTIFY:
+	  break;
+        case messages.SPEAK_NOTIFY:
+	  break;
+	case LOGOUT_NOTIFY:
+	  break;
+      }
+
+      if (read_bytes == 0){ // Connection is closed
+      } else if(read_bytes < 0){
+	perror("recv failed");
+      } else {
+	if(read_bytes != expected_data_len){
+	  printf("len: %d\n", lreply->len);
+	  printf("msg type: %d\n", lreply->msgtype);
+	  printf("error code: %d\n", lreply->error_code);
+	  printf("hp: %d\n", ntohl(lreply->hp));
+	  printf("exp: %d\n", ntohl(lreply->exp));
+	  printf("x: %d\n", lreply->x);
+	  printf("y: %d\n", lreply->y);
+	}
+      }
     }
   }
 }
@@ -164,31 +242,6 @@ int handlelogin(char* name,int sock){
     perror("send failed");
   } else {
     printf("Send: %d bytes\n", bytes_sent);
-  }
-
-  // Block and wait for response from the server
-  char buffer[4096];
-  int expected_data_len = sizeof(buffer);
-	  
-  int read_bytes = recv(sock,buffer,expected_data_len,0);
-
-  struct login_reply * lreply = (struct login_reply *) buffer;
-
-  // Check if the version is correct
-
-  if (read_bytes == 0){ // Connection is closed
-  } else if(read_bytes < 0){
-    perror("recv failed");
-  } else {
-    if(read_bytes != expected_data_len){
-      printf("len: %d\n", lreply->len);
-      printf("msg type: %d\n", lreply->msgtype);
-      printf("error code: %d\n", lreply->error_code);
-      printf("hp: %d\n", ntohl(lreply->hp));
-      printf("exp: %d\n", ntohl(lreply->exp));
-      printf("x: %d\n", lreply->x);
-      printf("y: %d\n", lreply->y);
-    }
   }
   return 0;
 }
