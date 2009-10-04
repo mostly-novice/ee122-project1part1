@@ -5,22 +5,36 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <stdbool.h>
 
 #include "header.h"
+#include "helper.h"
 
-struct Player{
+#define STDIN 0
+
+
+struct list_el {
+  int val;
+  struct list_el * next;
+};
+
+typedef struct list_el Node;
+
+typedef struct P{
+  char * name;
   int hp;
   int exp;
   int x;
   int y;
-};
+} Player;
 
 int main(int argc, char* argv[]){
 
   // Model Variables
-  struct Player * others;
-  struct Player self;
-  int isLogin = 0;
+  Player * self = (Player *) malloc(sizeof(Player)); // Remember to free this
+  Node * others;
+
+  bool isLogin = false;
   char command[80];
   char arg[80];
 
@@ -71,14 +85,15 @@ int main(int argc, char* argv[]){
   }
 
   printf("Hello Welcome to tiny World of Warcraft!\n");
-
-
-  FD_ZERO(&readfds);
-  FD_SET(STDIN, &readfds);
-  FD_SET(sock, &readfds);
+  printf("command >> ");
 
   while(!done){
-    if (select(sock+1,&readfds,&writefds,NULL,NULL) == -1){
+    
+    // Clear the set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(STDIN, &readfds);
+    FD_SET(sock, &readfds);
+    if (select(sock+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
       return 0;
     }
@@ -86,15 +101,56 @@ int main(int argc, char* argv[]){
     if(FD_ISSET(STDIN, &readfds)){
       // Handle stdin
       
-      printf("command >> ");
       scanf("%s %s",command, arg);
 
-      if (strcmp(command,"login") == 0){
-	char* name = arg; // TODO: Sanity check the input.
+      printf("command: %s\n arg: %s\n", command,arg);
+
+      if (strcmp(command,"login") == 0){ // LOGIN
+	char* name = arg; // TODO: Sanity check the input.'
+	
+	// Do some checking here
+	self->name = arg;
 	int status = handlelogin(name,sock);
-      } else if(strcmp(command,"move") == 0){
-      } else if(strcmp(command,"attack") == 0){
+
+
+
+
+      } else if(strcmp(command,"move") == 0){ // MOVE
+	char* direction = arg;
+	int status = handlemove(direction,sock);
+
+
+
+      } else if(strcmp(command,"attack") == 0){ // ATTACK
+	char* victim = arg;
+
+	// Reprocessing
+
+	if (strcmp(self->name, victim)==0){
+	  return 0;
+	}
+
+	// Search for the guy in the list
+
+	// Check if he is in sight
+
+	// Handling message deliever
+
+	if(strlen(victim) > 8){
+	  // Say that the string is too long
+	}
+
+	int status = handleattack(victim,sock);
+
       } else if(strcmp(command,"speak") == 0){
+
+	char * m = arg;
+
+	// Check the message
+
+	int status = handlespeak(m,sock);
+	
+	
       } else if(strcmp(command,"logout") == 0){
 	done = 1;
       } else {
@@ -104,19 +160,35 @@ int main(int argc, char* argv[]){
 
 
 
-    } else if (FD_ISSET(sock, &readfds)){
+    } else if (FD_ISSET(sock, &readfds)){ // Receiving from sock
       // Block and wait for response from the server
-      char buffer[4096];
+      unsigned char buffer[4096];
       int expected_data_len = sizeof(buffer);
       int read_bytes = recv(sock,buffer,expected_data_len,0);
 
-      struct message * m = (struct message *) buffer;
+      printf("buffer's len: %d\n", sizeof(buffer));
+
+      int j;
+      char header_c[4];
+      for(j = 0; j < 4; j++){
+	header_c[j] = buffer[j];
+      }
+
+      for(j = 0; j < 4; j++){
+	printf("%02x ", header_c[j]);
+      }
+
+      struct header *  m = (struct header *) header_c;
+
+      printf("Received a message.\n");
+      printf("msgtype: %x\n", m->msgtype);
 
       // Check for the msgtype
-      switch m->msgtype {
-	case messages.LOGIN_REPLY:
+      if(m->msgtype == LOGIN_REPLY){
+	  // LOGIN_REPLY
+
 	  struct login_reply * lreply = (struct login_reply *) m->payload;
-	  if(login){
+	  if(isLogin){
 	    // Treat it as a malformed package
 	  } else {
 	    if(lreply->error_code == 0){
@@ -126,32 +198,25 @@ int main(int argc, char* argv[]){
 	      self->x = ntohs(lreply->x);
 	      self->y = ntohs(lreply->y);
 
-	      login = true;
+	      isLogin = true;
 	    } else if (lreply->error_code == 1){
 	      // use message.h
 	    }
 	  }
-	  break;
-
-	case messages.MOVE_NOTIFY:
+      } else if(m->msgtype == MOVE_NOTIFY){
 	  struct move_notify * mn = (struct move_notify *) m->payload;
 	  // If the player is not insight, and the new location is not visible;
 	  
 	  Player * p;
 	  bool found = false;
 
-	  for(p = others; p != NULL, p++){
-	    if (strcmp(p->name,mn->name)==0){
-	      found = true;
-	      break;
-	    }
-	  }
+	  // Find the dude with the same name
 
 	  if(!found){
 	    // Add the dude to the array
 	    // Call the dude p
 
-	    struct Player * p;
+	    //Player * p;
 	  }
 	  
 	  bool oldp = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5; // if the old position is in sight
@@ -166,124 +231,26 @@ int main(int argc, char* argv[]){
 	    // Ignore
 	  }
 	  break;
-
-	case messages.ATTACK_NOTIFY:
+	  
+      } else if(m->msgtype == ATTACK_NOTIFY){
 	  struct attack_notify * an = (struct attack_notify *) m->payload;
 	  Player * attacker,victim;
 	  //set x,y for attacker and victim
-	  foreach (@others){
-		  if (strcmp(an->attacker_name,$_->name) == 0){
-			  attacker->x = $_->x;
-			  attacker->y = $_->y;
+	  /* foreach (@others){ */
+/* 		  if (strcmp(an->attacker_name,$_->name) == 0){ */
+/* 			  attacker->x = $_->x; */
+/* 			  attacker->y = $_->y; */
 
 
 
-	  bool attacker_in_sight = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5; // if the old position is in sight
+	  //bool attacker_in_sight = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5;
 
-	  bool victim_in_sight = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5; // if the old position is in sight
+	  //bool victim_in_sight = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5;
 
 	  break;
-        case messages.SPEAK_NOTIFY:
-	  break;
-	case LOGOUT_NOTIFY:
-	  break;
-      }
-
-      if (read_bytes == 0){ // Connection is closed
-      } else if(read_bytes < 0){
-	perror("recv failed");
-      } else {
-	if(read_bytes != expected_data_len){
-	  printf("len: %d\n", lreply->len);
-	  printf("msg type: %d\n", lreply->msgtype);
-	  printf("error code: %d\n", lreply->error_code);
-	  printf("hp: %d\n", ntohl(lreply->hp));
-	  printf("exp: %d\n", ntohl(lreply->exp));
-	  printf("x: %d\n", lreply->x);
-	  printf("y: %d\n", lreply->y);
-	}
+      } else if(m->msgtype == SPEAK_NOTIFY){ //
+      } else if(m->msgtype == LOGOUT_NOTIFY){
       }
     }
   }
 }
-
-
-// login
-// @summary: Logs in with the player account. If no account,
-//   create one and logs in. Generates message: LOGIN_REQUEST
-//   
-//   The other commands will be denied by the server with the 
-//   INVALID_STATE message with the error code 0. (in other words,
-//   the player must login before doing anything else.).	
-//
-// @arguments: 
-// 	char* name - the name of the player. Must be alphanum-
-// 		eric and up to 9 characters. 
-int handlelogin(char* name,int sock){
-
-  // Build the message
-  // sanity check:
-  // The name must be null-terminated. Thus, the effective maximum
-  // name length is 9 bytes. The name must contain only alphanumeric characters.
-
-
-  int message[4];
-  int i = 0;
-
-  printf("client - sock: %d\n", sock);
-
-  // Header
-  struct header *hdr = (struct header *) malloc(sizeof(int));
-
-  hdr->version = 0x04;
-  hdr->len = 0x10;
-  hdr->msgtype = 0x1;
-  hdr->payload[0] = 0x0;
-  hdr->payload[1] = 0x0;
-  hdr->payload[2] = 0x0;
-
-  for(i = 0; i < strlen(name); i++){
-    int messageIndex = i/4;
-    int shiftAmount = 8*(3- i % 4);
-
-    hdr->payload[messageIndex] += name[i] << shiftAmount;
-  }
-
-  unsigned char * msg = (unsigned char *) hdr;
-
-  // Send a login message to the server
-  int bytes_sent = send(sock,msg,16,0);
-  if (bytes_sent < 0) {
-    perror("send failed");
-  } else {
-    printf("Send: %d bytes\n", bytes_sent);
-  }
-  return 0;
-}
-
-
-
-/* char* logout(){ */
-/*   // Generate the LOGOUT_REQUEST */
-/*   int message; */
-/*   message = LOGOUT_REQUEST; */
-/*   message += (0x0004 << 8); */
-/*   message += (0x04 << 24); */
-
-/*   // Sending the LOGOUT_REQUEST */
-  
-
-/*   // Close the socket */
-  
-/* } */
-
-
-char* move(){
-}
-
-
-
-
-
-
-

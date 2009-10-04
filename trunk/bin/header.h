@@ -1,11 +1,17 @@
-struct message {
+struct header {
   uint8_t version;
-  uint16_t len;
+  uint8_t l1;
+  uint8_t len;
   uint8_t msgtype;
-  unsigned char payload[12];
 }__attribute__((packed));
 
 // Payload Type
+struct login_request {
+  unsigned char name[80];
+  uint16_t padding;
+}__attribute__((packed));
+
+
 struct login_reply {
   uint8_t error_code;
   uint32_t hp;
