@@ -34,7 +34,7 @@ struct attack {
   char padding[16];
 }__attribute__((packed));
 
-struct attack_nofiy {
+struct attack_notify {
   unsigned char attacker_name[80];
   unsigned char victim_name[80];
   uint8_t damage;
