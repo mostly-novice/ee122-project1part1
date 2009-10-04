@@ -178,16 +178,18 @@ int main(int argc, char* argv[]){
 	printf("%02x ", header_c[j]);
       }
 
-      struct header *  m = (struct header *) header_c;
+      struct header *  hdr = (struct header *) header_c;
 
       printf("Received a message.\n");
-      printf("msgtype: %x\n", m->msgtype);
+      printf("msgtype: %x\n", hdr->msgtype);
 
       // Check for the msgtype
       if(m->msgtype == LOGIN_REPLY){
+
+	printf("Message is a login reply\n");
 	  // LOGIN_REPLY
 
-	  struct login_reply * lreply = (struct login_reply *) m->payload;
+	  struct login_reply * lreply = (struct login_reply *) buffer;
 	  if(isLogin){
 	    // Treat it as a malformed package
 	  } else {
@@ -204,7 +206,7 @@ int main(int argc, char* argv[]){
 	    }
 	  }
       } else if(m->msgtype == MOVE_NOTIFY){
-	  struct move_notify * mn = (struct move_notify *) m->payload;
+	  struct move_notify * mn = (struct move_notify *) buffer;
 	  // If the player is not insight, and the new location is not visible;
 	  
 	  Player * p;
@@ -233,7 +235,7 @@ int main(int argc, char* argv[]){
 	  break;
 	  
       } else if(m->msgtype == ATTACK_NOTIFY){
-	  struct attack_notify * an = (struct attack_notify *) m->payload;
+	  struct attack_notify * an = (struct attack_notify *) m->buffer;
 	  Player * attacker,victim;
 	  //set x,y for attacker and victim
 	  /* foreach (@others){ */

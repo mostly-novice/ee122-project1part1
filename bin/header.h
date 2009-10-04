@@ -1,8 +1,8 @@
 struct header {
-  uint8_t version;
-  uint8_t l1;
-  uint8_t len;
-  uint8_t msgtype;
+  unsigned char version;
+  unsigned char l1;
+  unsigned char len;
+  unsigned char msgtype;
 }__attribute__((packed));
 
 // Payload Type
