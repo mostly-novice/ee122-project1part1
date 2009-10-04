@@ -89,19 +89,27 @@ int main(int argc, char* argv[]){
 
   printf("Hello Welcome to tiny World of Warcraft!\n");
   while(!done){
-    printf("command >> ");
-    scanf("%s %s",command, arg);
+    select(maxfd+1,&readfds,&writefds,NULL,NULL);
+    
+    if(FD_ISSET(STDIN, &readfds)){
+      // Handle stdin
+      
+      printf("command >> ");
+      scanf("%s %s",command, arg);
 
-    if (strcmp(command,"login") == 0){
-      char* name = arg; // TODO: Sanity check the input.
-      int status = handlelogin(name,sock);
-    } else if(strcmp(command,"move") == 0){
-    } else if(strcmp(command,"attack") == 0){
-    } else if(strcmp(command,"speak") == 0){
-    } else if(strcmp(command,"logout") == 0){
-      done = 1;
-    } else {
-      printf("WTF?\n");
+      if (strcmp(command,"login") == 0){
+	char* name = arg; // TODO: Sanity check the input.
+	int status = handlelogin(name,sock);
+      } else if(strcmp(command,"move") == 0){
+      } else if(strcmp(command,"attack") == 0){
+      } else if(strcmp(command,"speak") == 0){
+      } else if(strcmp(command,"logout") == 0){
+	done = 1;
+      } else {
+	printf("WTF?\n");
+      }
+    } else if (FD_ISSET(sock, &readfds)){
+      // Received message
     }
   }
 }
@@ -173,13 +181,13 @@ int handlelogin(char* name,int sock){
     perror("recv failed");
   } else {
     if(read_bytes != expected_data_len){
-	printf("len: %d\n", lreply->len);
-      	printf("msg type: %d\n", lreply->msgtype);
-      	printf("error code: %d\n", lreply->error_code);
-       printf("hp: %d\n", ntohl(lreply->hp));
-       printf("exp: %d\n", ntohl(lreply->exp));
-       printf("x: %d\n", lreply->x);
-       printf("y: %d\n", lreply->y);
+      printf("len: %d\n", lreply->len);
+      printf("msg type: %d\n", lreply->msgtype);
+      printf("error code: %d\n", lreply->error_code);
+      printf("hp: %d\n", ntohl(lreply->hp));
+      printf("exp: %d\n", ntohl(lreply->exp));
+      printf("x: %d\n", lreply->x);
+      printf("y: %d\n", lreply->y);
     }
   }
   return 0;
