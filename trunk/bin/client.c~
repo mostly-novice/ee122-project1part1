@@ -177,7 +177,7 @@ int handlelogin(char* name,int sock){
       	printf("msg type: %d\n", lreply->msgtype);
       	printf("error code: %d\n", lreply->error_code);
        printf("hp: %d\n", ntohl(lreply->hp));
-       printf("exp: %d\n", ntohl(lreply->exp));
+       printf("exp: %d\n", ntonl(lreply->exp));
        printf("x: %d\n", lreply->x);
        printf("y: %d\n", lreply->y);
     }
