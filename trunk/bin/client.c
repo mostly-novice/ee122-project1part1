@@ -158,15 +158,30 @@ int main(int argc, char* argv[]){
 	  bool newp = abs((self->x - p->x))<5 && abs((self->y - p->y))<5; // if the new position is in sight
 	  if (oldp || newp){
 	    // update his stat
-	    if (oldp){
+	    if (newp){
 	      // send out a message
 	    }
+	    // in either case, update the position for player p in database.
 	  } else {
 	    // Ignore
 	  }
 	  break;
 
 	case messages.ATTACK_NOTIFY:
+	  struct attack_notify * an = (struct attack_notify *) m->payload;
+	  Player * attacker,victim;
+	  //set x,y for attacker and victim
+	  foreach (@others){
+		  if (strcmp(an->attacker_name,$_->name) == 0){
+			  attacker->x = $_->x;
+			  attacker->y = $_->y;
+
+
+
+	  bool attacker_in_sight = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5; // if the old position is in sight
+
+	  bool victim_in_sight = abs((self->x - p->x))<=5 && abs((self->y - p->y))<=5; // if the old position is in sight
+
 	  break;
         case messages.SPEAK_NOTIFY:
 	  break;
