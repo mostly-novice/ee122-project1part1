@@ -141,20 +141,20 @@ int handlespeak(char * m, int sock){
 int handlelogout(char * name,int sock){
   struct header *hdr = (struct header *) malloc(sizeof(int));
 
-  msg->version = 0x04;
-  msg->len = 0x08;
-  msg->msgtype = LOGOUT;
+  hdr->version = 0x04;
+  hdr->len = 0x08;
+  hdr->msgtype = LOGOUT;
 
-  char * tosent = (char*) msg;
+  char * tosent = (char*) hdr;
 
   // Sending the message;
-  int bytes_sent = send(sock,tosent,msg->len,0);
+  int bytes_sent = send(sock,tosent,hdr->len,0);
   if (bytes_sent < 0){
     perror("send failed.\n");
     return -1;
   } else {
     printf("Send: %d bytes\n", bytes_sent);
   }
-  free(msg);
+  free(hdr);
 }
 
