@@ -1,23 +1,29 @@
 #include <stdio.h>
-#include <string.h>
-#include "constants.h"
+#include <stdlib.h>
+#include <vector>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #include "header.h"
-#include <vector>
+#include "constants.h"
+
 using namespace std;
 
 #define STDIN 0
 
-struct Player{
+typedef struct Node {
+}
+
+
+typedef struct P{
   int hp;
   int exp;
   int x;
   int y;
-};
+}Player;
 
 int handlelogin(char* name,int sock);
 
@@ -25,6 +31,7 @@ int main(int argc, char* argv[]){
 
   // Model Variables
   vector<struct Player*>  others;
+
   struct Player * self;
   bool login = false;
   char command[80];
