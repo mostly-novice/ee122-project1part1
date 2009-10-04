@@ -1,0 +1,10 @@
+int main(){
+  char version = 4;
+}
+
+char * build_message(char version, char* length, char msg_type, char* payload){
+  char message[16];
+  message[0] = version;
+  message[1] = length[0];
+  message[1] = length[1];
+}
