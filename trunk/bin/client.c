@@ -352,7 +352,8 @@ int main(int argc, char* argv[]){
 	    } // End of if p == NULL
 	  }
 	  
-	} else if(hdr->msgtype == ATTACK_NOTIFY){
+	} else if(hdr->msgtype == ATTACK_NOTIFY)
+	{
 	  struct attack_notify * an = (struct attack_notify *)payload_c;
 	  Player * att = findPlayer(an->attacker_name, others);
 	  Player * vic = findPlayer(an->victim_name, others);
@@ -370,19 +371,22 @@ int main(int argc, char* argv[]){
 	  }
 	  
 	  
-	} else if(hdr->msgtype == SPEAK_NOTIFY){ //
+	} else if(hdr->msgtype == SPEAK_NOTIFY)
+	{
 		struct speak_notify* sreply = (struct speak_notify*) payload_c;
 		unsigned char * message = sreply->msg;
 		unsigned char * name = sreply->broadcaster;
-
+    
 		// null terminated & no longer than 255
-		if(!check_player_message(message)){ 		//TODO: need to check this in the send too!!
+		if(!check_player_message(message))
+		{
 		  printf("! Invalid format\n");
 		  continue;
 		}
 		
 		printf("%s: %s\n",name,message);
-	} else if(hdr->msgtype == LOGOUT_NOTIFY){
+	} else if(hdr->msgtype == LOGOUT_NOTIFY)
+	{
 		struct logout_reply * loreply = (struct logout_reply *) payload_c;
 		printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
 	}
