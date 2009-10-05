@@ -6,7 +6,8 @@
 
 //Helper: handle the various task in clients
 
-int handlelogin(char* name,int sock){
+int handlelogin(char* name,int sock)
+{
   int i = 0;
   int j;
 
@@ -29,17 +30,21 @@ int handlelogin(char* name,int sock){
 
   unsigned char tosent[16];
 
-  for(j = 0; j < 16; j++){
-    if(j<4){
+  for(j = 0; j < 16; j++)
+  {
+    if(j<4)
+    {
       tosent[j] = header_c[j];
-    } else {
+    } else 
+    {
       tosent[j] = payload_c[j-4];
     }
   }
 
   // Send a login message to the server
   int bytes_sent = send(sock, tosent,16,0);
-  if (bytes_sent < 0) {
+  if (bytes_sent < 0) 
+  {
     perror("send failed");
   } else {
     printf("Sent: %d bytes\n", bytes_sent);
@@ -50,7 +55,8 @@ int handlelogin(char* name,int sock){
   return 0;
 }
 
-int handlemove(char * direction, int sock){
+int handlemove(char * direction, int sock)
+{
   struct header *hdr = (struct header *) malloc(sizeof(int)); // Remember to free this
   struct move * payload = (struct move *) malloc(sizeof(int)); // Remember to free this
   int j;
@@ -102,7 +108,8 @@ int handlemove(char * direction, int sock){
 
 // Helper for attack
 // Assuming that the input is valid
-int handleattack(char * victim, int sock){
+int handleattack(char * victim, int sock)
+{
   int j = 0;
 
   // Must be null-terminated
@@ -144,9 +151,15 @@ int handleattack(char * victim, int sock){
   return 0;
 }
 
-// Speak
-int handlespeak(char * m, int sock){
- // Header
+// handlespeak - send speak msg.
+int handlespeak(char * m, int sock)
+{
+  if(! check_player_message(m))
+  {
+    printf("! Invalid message\n");
+    continue;
+  }
+    
   unsigned int payloadLenth = strlen(m) + 1 + 4 - ((strlen(m) % 4));
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
   struct speak * payload = (struct speak *) malloc(sizeof(char)*payloadLenth);
@@ -170,19 +183,24 @@ int handlespeak(char * m, int sock){
 
   unsigned char tosent[totalMessageLength];
 
-  for(j = 0; j < totalMessageLength; j++){
-    if(j<4){
+  for(j = 0; j < totalMessageLength; j++)
+  {
+    if(j<4)
+    {
       tosent[j] = header_c[j];
-    } else {
+    } else 
+    {
       tosent[j] = payload_c[j-4];
     }
   }
 
   // Send a speak message to the server
   int bytes_sent = send(sock, tosent,totalMessageLength,0);
-  if (bytes_sent < 0) {
+  if (bytes_sent < 0) 
+  {
     perror("send failed");
-  } else {
+  } else 
+  {
     printf("Sent: %d bytes\n", bytes_sent);
   }
 
@@ -191,7 +209,8 @@ int handlespeak(char * m, int sock){
   return 0;
 }
 
-int handlelogout(char * name,int sock){
+int handlelogout(char * name,int sock)
+{
   struct header *hdr = (struct header *) malloc(sizeof(int));
   int j;
 
@@ -202,17 +221,20 @@ int handlelogout(char * name,int sock){
   char * tosent = (char*) hdr;
 
   printf("tosent: ");
-  for(j = 0; j < 8; j++){
+  for(j = 0; j < 8; j++)
+  {
     printf("%02x ", tosent[j]);
   }
   printf("\n");
 
   // Sending the message;
   int bytes_sent = send(sock,tosent,4,0);
-  if (bytes_sent < 0){
+  if (bytes_sent < 0)
+  {
     perror("send failed.\n");
     return -1;
-  } else {
+  } else 
+  {
     printf("Send: %d bytes\n", bytes_sent);
   }
   free(hdr);
