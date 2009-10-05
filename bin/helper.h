@@ -134,11 +134,12 @@ int handleattack(char * victim, int sock){
 int handlespeak(char * m, int sock){
 }
 
+// sending logout
 int handlelogout(char * name,int sock){
   struct header *hdr = (struct header *) malloc(sizeof(int));
 
   hdr->version = 0x04;
-  hdr->len = 0x08;
+  hdr->len = 0x4;
   hdr->msgtype = LOGOUT;
 
   char * tosent = (char*) hdr;

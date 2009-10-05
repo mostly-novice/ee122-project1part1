@@ -163,6 +163,7 @@ int main(int argc, char* argv[]){
 	
 	
       } else if(strcmp(command,"logout") == 0){
+	      handlelogout(self->name,sock);
 	done = 1;
       } else {
 	printf("Unrecognized command.\n");
@@ -316,6 +317,8 @@ int main(int argc, char* argv[]){
 	  break;
 	} else if(hdr->msgtype == SPEAK_NOTIFY){ //
 	} else if(hdr->msgtype == LOGOUT_NOTIFY){
+//		struct logout_reply * loreply = (struct logout_reply *) payload_c;
+//		printf("Player %s has left the tiny world of warcraft.\n",loreply->name);	  	
 	}
       }
     }
