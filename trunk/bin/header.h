@@ -11,6 +11,10 @@ struct login_request {
   uint16_t padding;
 }__attribute__((packed));
 
+struct logout_reply{
+  unsigned  char name [10];
+  uint16_t padding;
+}__attribute__((packed));
 
 struct login_reply {
   uint8_t error_code;
