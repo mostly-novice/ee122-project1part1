@@ -1,28 +1,27 @@
 struct header {
   unsigned char version;
-  unsigned char l1;
-  unsigned char len;
+  unsigned short len;
   unsigned char msgtype;
 }__attribute__((packed));
 
 // Payload Type
 struct login_request {
   unsigned char name[10];
-  uint16_t padding;
+  unsigned char padding[2];
 }__attribute__((packed));
 
 struct logout_reply{
   unsigned  char name [10];
-  uint16_t padding;
+  unsigned char padding[2];
 }__attribute__((packed));
 
 struct login_reply {
-  uint8_t error_code;
-  uint32_t hp;
-  uint32_t exp;
-  uint8_t x;
-  uint8_t y;
-  uint8_t padding;
+  unsigned char error_code;
+  unsigned int hp;
+  unsigned int exp;
+  unsigned char x;
+  unsigned char y;
+  unsigned char padding;
 }__attribute__((packed));
 
 struct move_notify {
@@ -35,21 +34,21 @@ struct move_notify {
 
 
 struct move {
-  uint8_t direction;
-  char padding[24];
+  unsigned char direction;
+  unsigned char padding[3];
 }__attribute__((packed));
 
 struct attack {
-  char victimname[80];
-  char padding[16];
+  char victimname[10];
+  char padding[2];
 }__attribute__((packed));
 
 struct attack_notify {
-  unsigned char attacker_name[80];
-  unsigned char victim_name[80];
-  uint8_t damage;
-  uint32_t hp; // Specifies the updated HP of the victim in network-byte-order. Cannot be negative
-  char padding[24];
+  unsigned char attacker_name[10];
+  unsigned char victim_name[10];
+  unsigned char damage;
+  unsigned int hp; // Specifies the updated HP of the victim in network-byte-order. Cannot be negative
+  char padding[3];
 }__attribute__((packed));
 
 struct speak {
@@ -58,6 +57,6 @@ struct speak {
 }__attribute__((packed));
 
 struct speak_notify {
-  char broastcaster[80];
+  char broastcaster[10];
   char * msg;
 }__attribute__((packed));
