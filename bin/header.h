@@ -7,7 +7,7 @@ struct header {
 
 // Payload Type
 struct login_request {
-  unsigned char name[80];
+  unsigned char name[10];
   uint16_t padding;
 }__attribute__((packed));
 
@@ -22,11 +22,11 @@ struct login_reply {
 }__attribute__((packed));
 
 struct move_notify {
-  char name[80];
-  uint8_t x;
-  uint8_t y;
-  uint32_t hp;
-  uint32_t exp;
+  unsigned char name[10];
+  unsigned char x;
+  unsigned char y;
+  unsigned int hp;
+  unsigned int exp;
 }__attribute__((packed));
 
 

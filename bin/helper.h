@@ -9,10 +9,6 @@
 int handlelogin(char* name,int sock){
   int i = 0;
 
-
-  printf("handlelogin - name: %s\n", name);
-  printf("client - sock: %d\n", sock);
-
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
   struct login_request * payload = (struct login_request *) malloc(sizeof(int)*3);
@@ -51,7 +47,7 @@ int handlelogin(char* name,int sock){
   if (bytes_sent < 0) {
     perror("send failed");
   } else {
-    printf("Send: %d bytes\n", bytes_sent);
+    printf("Sent: %d bytes\n", bytes_sent);
   }
 
   free(hdr);
