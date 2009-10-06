@@ -57,6 +57,10 @@ struct speak {
 }__attribute__((packed));
 
 struct speak_notify {
-  char broadcaster[10];
-  char * msg;
+  unsigned char broadcaster[10];
+  unsigned char * msg;
+}__attribute__((packed));
+
+struct invalid_state {
+  unsigned char error_code;
 }__attribute__((packed));
