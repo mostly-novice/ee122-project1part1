@@ -33,37 +33,21 @@ void addPlayer(Node * node, Node * list, Node * tail){
 }
 
 int main(){
-  Node * list;
-  Node * tail;
-  Player * p1 = (Player *) malloc(sizeof(Player));
-  Player * p2 = (Player *) malloc(sizeof(Player));
-  Player * p3 = (Player *) malloc(sizeof(Player));
+  char mystring[300] = "login string.";
+  char * pch;
+  char command[80];
+  char arg[80];
+  fgets(mystring,300,stdin);
+  if(strcmp(mystring,"\n")==0){
+    return 0;
+  }
+  mystring[strlen(mystring)-1] = 0;
+  pch = strtok(mystring," ");
+  strcpy(command,pch);
+  pch = strtok(NULL," ");
+  strcpy(arg, pch+strlen(pch)+1);
 
-  p1->name = "kevin";
-  p2->name = "aepr88";
-  p3->name = "tony";
-
-  Node * newnode1 = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
-  newnode1->datum = p1;
-  list = newnode1;
-  tail = newnode1;
-
-  Node * newnode2 = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
-  newnode2->datum = p2;
-  tail->next = newnode2; 
-
-  Node * newnode3 = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
-  newnode3->datum = p3;
-  tail->next = newnode3;
-
-  Node * p = findPlayer("tony", list);
-  printf("name:%s\n",p->datum->name);
-
-  p = findPlayer("tony2", list);
-  if(p) printf("found\n");
-  else printf("not found\n");
-
-  p = findPlayer("tony", list);
-  if(p) printf("found\n");
-  else printf("not found\n");
+  printf("Command:%s\n", command);
+  printf("Arg:%s\n", pch);
+  return 1;
 }
