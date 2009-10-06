@@ -1,0 +1,25 @@
+struct message {
+  uint8_t version;
+  uint16_t len;
+  uint8_t msgtype;
+  unsigned char payload[12];
+}__attribute__((packed));
+
+// Payload Type
+struct login_reply {
+  uint8_t error_code;
+  uint32_t hp;
+  uint32_t exp;
+  uint8_t x;
+  uint8_t y;
+  uint8_t padding;
+}__attribute__((packed));
+
+struct move {
+  uint8_t error_code;
+  uint32_t hp;
+  uint32_t exp;
+  uint8_t x;
+  uint8_t y;
+  uint8_t padding;
+}__attribute__((packed));

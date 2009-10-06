@@ -38,8 +38,6 @@ int handlelogin(char* name,int sock){
     }
   }
 
-  printMessage(tosent,16);
-
   // Send a login message to the server
   int bytes_sent = send(sock, tosent,16,0);
   if (bytes_sent < 0) {
@@ -113,7 +111,7 @@ int handleattack(char * victim, int sock){
   struct attack * payload = (struct attack *) malloc(sizeof(int)*3); // remember to free this
 
   hdr->version = 0x4;
-  hdr->len = htons(0x08);
+  hdr->len = htons(0x10);
   hdr->msgtype = ATTACK;
 
   // Copy the name
