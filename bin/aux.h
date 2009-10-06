@@ -11,8 +11,3 @@ void readstdin(char * command, char * arg){
   strcpy(command,pch);
   strcpy(arg, pch+strlen(pch)+1);
 }
-
-void stats(Player * p){
-  fprintf(stdout, "%s: location=(%u,%u), HP=%u, EXP=%u\n",
-          p->name, p->x, p->y, p->hp, p->exp);
-}

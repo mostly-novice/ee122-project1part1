@@ -31,19 +31,28 @@ struct list_el {
 
 typedef struct list_el Node;
 
-Node * printPlayers(Node * list){
+void stats(Player * p){
+  fprintf(stdout, "%s: location=(%u,%u), HP=%u, EXP=%u\n",
+          p->name, p->x, p->y, p->hp, p->exp);
+}
+
+void printPlayers(Node * list){
+  Node * p;
   for(p = list; p != NULL; p = p->next){
     stats(p->datum);
   }
 }
 
+
 Node * findPlayer(char * name, Node * list){
   Node * p;
   for(p = list; p != NULL; p = p->next){
     if (strcmp(p->datum->name,name)==0){
+      printf("Found the guy: %s.\n", name);
       return p;
     }
   }
+  printf("Didn't find the guys: %s\n", name);
   return NULL;
 }
 
@@ -95,9 +104,11 @@ Node * freePlayers(Node * list)
 
 Node * addPlayer(Node * node, Node * list, Node * tail){
   if(tail == NULL && list == NULL){ // First player
+    printf("%s is the first player.\n", node->datum->name);
     tail = node;
     list = node;
   } else {
+    printf("%s is not the first player.\n", node->datum->name);
     tail->next = node;
     tail = node;
   }
@@ -243,6 +254,7 @@ int main(int argc, char* argv[]){
 	exit(1);
 
       } else if(strcmp(command,"whois") == 0){
+	printPlayers(others);
 
       } else {
 	printf("Unrecognized command.\n");
@@ -348,6 +360,7 @@ int main(int argc, char* argv[]){
 	    if(p == NULL){ // Not in the list
 	      
 	      // Adding the player
+	      printf("Adding the player.\n");
 	      Node * newnode = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
 
 	      Player * newplayer = (Player*) malloc(sizeof(Player)); // TODO: remember to free this first
@@ -355,7 +368,8 @@ int main(int argc, char* argv[]){
 	      newnode->datum = newplayer;
 	      newnode->next = NULL;
 
-	      addPlayer(newplayer,others,tail);
+	      addPlayer(newnode,others,tail);
+	      printf("Adding the player.\n");
 
 	      // Printing
 	      on_move_notify(newplayer->name, newplayer->x, newplayer->y, newplayer->hp,newplayer->exp);
@@ -377,12 +391,15 @@ int main(int argc, char* argv[]){
 	  Node * att_node = findPlayer(an->attacker_name, others);
 	  Node * vic_node = findPlayer(an->victim_name, others);
 
+	  Player * att = att_node->datum;
+	  Player * vic = vic_node->datum;
+
 	  int updated_hp = ntohl(an->hp);
 	  char damage = an->damage;
 	  // Check in the case where they are null
 
 	  // Check the visibility
-	  int attVisible = isVisible(self->x,self->y,att_node->datum->x,att_node->datum->y);
+	  int attVisible = isVisible(self->x,self->y,att->x,att->y);
 	  int vicVisible = isVisible(self->x,self->y,vic->x,vic->y);
 
 	  if (attVisible && vicVisible){
