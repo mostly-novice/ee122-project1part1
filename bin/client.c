@@ -102,18 +102,6 @@ Node * freePlayers(Node * list)
 
 }
 
-void addPlayer(Node * node, Node * list, Node * tail){
-  if(tail == NULL && list == NULL){ // First player
-    printf("%s is the first player.\n", node->datum->name);
-    tail = node;
-    list = node;
-  } else {
-    printf("%s is not the first player.\n", node->datum->name);
-    tail->next = node;
-    tail = node;
-  }
-}
-
 void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   strcpy(object->name,name);
   object->hp = hp;
@@ -195,7 +183,9 @@ int main(int argc, char* argv[]){
     
     if(FD_ISSET(STDIN, &readfds)){
       show_prompt();
-      readstdin(command,arg);
+      if(!readstdin(command,arg)){
+	continue;
+      }
 
       if (strcmp(command,"login") == 0){ // LOGIN
 	char* name = arg; // TODO: Sanity check the input.'
@@ -209,9 +199,11 @@ int main(int argc, char* argv[]){
 	int status = handlemove(direction,sock);
 
 
-
       } else if(strcmp(command,"attack") == 0){ // ATTACK
 	char* victimname = arg;
+	if(strcmp(victimname,self->name)== 0){
+	  continue;
+	}
 
 	if(!check_player_name(victimname)){
 	  printf("! Invalid name: %s\n", victimname);
@@ -219,7 +211,8 @@ int main(int argc, char* argv[]){
 	}
 
 	// Search for the guy in the list
-	Player * victim = findPlayer(victimname,others);
+	Node * vic = findPlayer(victimname,others);
+	Player * victim = vic->datum;
 
 	if (!victim){ // If it is NULL
 	  on_not_visible();
@@ -228,12 +221,9 @@ int main(int argc, char* argv[]){
 
 	int isvisible = isVisible(self->x,self->y,victim->x,victim->y);
 
-	if(!isvisible){
-	  on_not_visible();
-	  continue;
-	}
+	if(!isvisible){ on_not_visible(); continue;}
 
-	int status = handleattack(victim,sock);
+	int status = handleattack(victimname,sock);
 
       } else if(strcmp(command,"speak") == 0){
 
@@ -377,7 +367,8 @@ int main(int argc, char* argv[]){
 	      }
 
 	      // Printing
-	      on_move_notify(newplayer->name, newplayer->x, newplayer->y, newplayer->hp,newplayer->exp);
+	      if (isVisible(self->x,self->y,newplayer->x,newplayer->y))
+		on_move_notify(newplayer->name, newplayer->x, newplayer->y, newplayer->hp,newplayer->exp);
 
 	    } else { // The guy is in the list
 	      int oldv = isVisible(self->x,self->y,p->datum->x,p->datum->y);
@@ -393,15 +384,25 @@ int main(int argc, char* argv[]){
 	  
 	} else if(hdr->msgtype == ATTACK_NOTIFY){
 	  struct attack_notify * an = (struct attack_notify *)payload_c;
-	  Node * att_node = findPlayer(an->attacker_name, others);
-	  Node * vic_node = findPlayer(an->victim_name, others);
+	  Player * att;
+	  Player * vic;
 
-	  Player * att = att_node->datum;
-	  Player * vic = vic_node->datum;
+	  if (strcmp(an->attacker_name,self->name)==0){
+	    att = self;
+	  } else {
+	    Node * att_node = findPlayer(an->attacker_name, others);
+	    att = att_node->datum;
+	  }
+
+	  if (strcmp(an->victim_name,self->name)==0){
+	    vic = self;
+	  } else {
+	    Node * vic_node = findPlayer(an->victim_name, others);
+	    vic = vic_node->datum;
+	  }
 
 	  int updated_hp = ntohl(an->hp);
 	  char damage = an->damage;
-	  // Check in the case where they are null
 
 	  // Check the visibility
 	  int attVisible = isVisible(self->x,self->y,att->x,att->y);
@@ -430,7 +431,10 @@ int main(int argc, char* argv[]){
 	  // Take the the player out of the database
 
 	  struct logout_reply * loreply = (struct logout_reply *) payload_c;
-	  removePlayer(loreply->name, others);
+	  if (removePlayer(loreply->name, others)){
+	    perror("LOGOUT_NOTIFY - remove player");
+	    exit(-1);
+	  }
 	  printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
 
 

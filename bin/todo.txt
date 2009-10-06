@@ -1,0 +1,9 @@
+when entering into the game, upon pressing <ENTER> we recieve SEGFAULT
+
+make sure direction (ALL COMMANDS) case insensitive
+
+
+login                             phuc fails also.
+
+
+when the server ends, we must say that "THE GATE ... HS CLOSED ON MY FOOT"
