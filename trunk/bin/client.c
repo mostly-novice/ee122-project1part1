@@ -78,17 +78,23 @@ Node * freePlayers(Node * list)
   Node * head = list;
   Node * curr;
   while(head)
-  {
-	curr = head;
-	head = curr->next;
-	free(curr->datum);
-	free(curr);
-  }
+    {
+      curr = head;
+      head = curr->next;
+      free(curr->datum);
+      free(curr);
+    }
 
 }
 
-Node * addPlayer(char * name, Node * list){
-  // Add player
+Node * addPlayer(Node * node, Node * list, Node * tail){
+  if(tail == NULL && list == NULL){ // First player
+    tail = node;
+    list = node;
+  } else {
+    tail->next = node;
+    tail = node;
+  }
 }
 
 void initialize(Player * object,char * name, int hp, int exp, int x, int y){
@@ -177,7 +183,7 @@ int main(int argc, char* argv[]){
     
     if(FD_ISSET(STDIN, &readfds)){
       show_prompt();
-      scanf("%s %s",command, arg);
+      readstdin(command,arg);
 
       if (strcmp(command,"login") == 0){ // LOGIN
 	char* name = arg; // TODO: Sanity check the input.'
@@ -332,46 +338,35 @@ int main(int argc, char* argv[]){
 
 	    on_move_notify(self->name, self->x, self->y, self->hp,self->exp);
 
-	  } else {
+	  } else { // The guy is someone else
+
 	    p = findPlayer(mn->name,others);
+
 	    if(p == NULL){ // Not in the list
 	      
 	      // Adding the player
 	      Node * newnode = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
 
 	      Player * newplayer = (Player*) malloc(sizeof(Player)); // TODO: remember to free this first
-
-	      strcpy(newplayer->name,mn->name);
-	      newplayer->hp = ntohl(mn->hp);
-	      newplayer->exp = ntohl(mn->exp);
-	      newplayer->x = mn->x;
-	      newplayer->y = mn->y;
-
+	      initialize(newplayer,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
 	      newnode->datum = newplayer;
 	      newnode->next = NULL;
 
-	      if(tail == NULL){
-		others = newnode;
-		tail = newnode;
-	
-	      } else {
-		tail->next = newnode;
-		tail = newnode;
+	      addPlayer(newplayer,others,tail);
+
+	      // Printing
+	      on_move_notify(newplayer->name, newplayer->x, newplayer->y, newplayer->hp,newplayer->exp);
+
+	    } else { // The guy is in the list
+	      int oldv = isVisible(self->x,self->y,p->datum->x,p->datum->y);
+	      int newv = isVisible(self->x,self->y,mn->x,mn->y);
+
+	      if(oldv || newv){
+		initialize(p->datum,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
+		on_move_notify(p->datum->name, p->datum->x, p->datum->y, p->datum->hp,p->datum->exp);
 	      }
 
-	      // Checking for vision
-	      int oldp = abs((self->x - newplayer->x))<=5 
-		&& abs((self->y - newplayer->y))<=5; // if the old position is in sight
-	      int newp = abs((self->x - newplayer->x))<5 
-		&& abs((self->y - newplayer->y))<5; // if the new position is in sight
-
-	      if (oldp || newp){
-		if (newp){
-		  on_move_notify(newplayer->name, newplayer->x, newplayer->y, newplayer->hp,newplayer->exp);
-		} // End of if
-	      } // End of if
-
-	    } // End of if p == NULL
+	    } // End inner if
 	  }
 	  
 	} else if(hdr->msgtype == ATTACK_NOTIFY){
