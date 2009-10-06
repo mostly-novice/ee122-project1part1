@@ -38,9 +38,11 @@ void stats(Player * p){
 
 void printPlayers(Node * list){
   Node * p;
+  printf("People in the list:\n");
   for(p = list; p != NULL; p = p->next){
     stats(p->datum);
   }
+  printf("---------------------\n");
 }
 
 
@@ -48,11 +50,9 @@ Node * findPlayer(char * name, Node * list){
   Node * p;
   for(p = list; p != NULL; p = p->next){
     if (strcmp(p->datum->name,name)==0){
-      printf("Found the guy: %s.\n", name);
       return p;
     }
   }
-  printf("Didn't find the guys: %s\n", name);
   return NULL;
 }
 
@@ -102,7 +102,7 @@ Node * freePlayers(Node * list)
 
 }
 
-Node * addPlayer(Node * node, Node * list, Node * tail){
+void addPlayer(Node * node, Node * list, Node * tail){
   if(tail == NULL && list == NULL){ // First player
     printf("%s is the first player.\n", node->datum->name);
     tail = node;
@@ -360,16 +360,21 @@ int main(int argc, char* argv[]){
 	    if(p == NULL){ // Not in the list
 	      
 	      // Adding the player
-	      printf("Adding the player.\n");
-	      Node * newnode = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
+	      Node * node = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
 
 	      Player * newplayer = (Player*) malloc(sizeof(Player)); // TODO: remember to free this first
 	      initialize(newplayer,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
-	      newnode->datum = newplayer;
-	      newnode->next = NULL;
+	      node->datum = newplayer;
+	      node->next = NULL;
 
-	      addPlayer(newnode,others,tail);
-	      printf("Adding the player.\n");
+
+	      if(tail == NULL && others == NULL){ // First player
+		tail = node;
+		others = node;
+	      } else {
+		tail->next = node;
+		tail = node;
+	      }
 
 	      // Printing
 	      on_move_notify(newplayer->name, newplayer->x, newplayer->y, newplayer->hp,newplayer->exp);
