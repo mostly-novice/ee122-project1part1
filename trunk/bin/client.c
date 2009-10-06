@@ -31,6 +31,12 @@ struct list_el {
 
 typedef struct list_el Node;
 
+Node * printPlayers(Node * list){
+  for(p = list; p != NULL; p = p->next){
+    stats(p->datum);
+  }
+}
+
 Node * findPlayer(char * name, Node * list){
   Node * p;
   for(p = list; p != NULL; p = p->next){
@@ -103,11 +109,6 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   object->exp = exp;
   object->x = x;
   object->y = y;
-}
-
-void stats(Player * p){
-  fprintf(stdout, "%s: location=(%u,%u), HP=%u, EXP=%u\n",
-          p->name, p->x, p->y, p->hp, p->exp);
 }
 
 int main(int argc, char* argv[]){
@@ -241,6 +242,8 @@ int main(int argc, char* argv[]){
 	freePlayers(others);
 	exit(1);
 
+      } else if(strcmp(command,"whois") == 0){
+
       } else {
 	printf("Unrecognized command.\n");
       }
@@ -371,15 +374,15 @@ int main(int argc, char* argv[]){
 	  
 	} else if(hdr->msgtype == ATTACK_NOTIFY){
 	  struct attack_notify * an = (struct attack_notify *)payload_c;
-	  Player * att = findPlayer(an->attacker_name, others);
-	  Player * vic = findPlayer(an->victim_name, others);
+	  Node * att_node = findPlayer(an->attacker_name, others);
+	  Node * vic_node = findPlayer(an->victim_name, others);
 
 	  int updated_hp = ntohl(an->hp);
 	  char damage = an->damage;
 	  // Check in the case where they are null
 
 	  // Check the visibility
-	  int attVisible = isVisible(self->x,self->y,att->x,att->y);
+	  int attVisible = isVisible(self->x,self->y,att_node->datum->x,att_node->datum->y);
 	  int vicVisible = isVisible(self->x,self->y,vic->x,vic->y);
 
 	  if (attVisible && vicVisible){
