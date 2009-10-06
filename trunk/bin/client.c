@@ -41,6 +41,52 @@ Node * findPlayer(char * name, Node * list){
   return NULL;
 }
 
+unsigned int removePlayer(char * name, Node *list)
+{
+  Node * prev = list;
+  Node * curr;
+  Node * temp;
+	
+  /* check for empty list */
+  if(!list){
+    return 0;
+  }
+
+  /* check if datum is in head of list */
+  if(strcmp(prev->datum->name,name)==0){
+    list = list->next;
+    free(prev->datum);
+    free(prev);
+    return 1;
+  }
+
+  while( curr->next ){
+    if( strcmp( curr->next->datum->name,name )==0 ){
+      temp = curr->next;
+      curr->next = curr->next->next;
+      free(temp->datum);
+      free(temp);
+    }
+  }
+}
+
+
+
+Node * freePlayers(Node * list)
+{
+  // To free all the players after log out
+  Node * head = list;
+  Node * curr;
+  while(head)
+  {
+	curr = head;
+	head = curr->next;
+	free(curr->datum);
+	free(curr);
+  }
+
+}
+
 Node * addPlayer(char * name, Node * list){
   // Add player
 }
@@ -54,7 +100,7 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
 }
 
 void stats(Player * p){
-   fprintf(stdout, "%s: location=(%u,%u), HP=%u, EXP=%u\n",
+  fprintf(stdout, "%s: location=(%u,%u), HP=%u, EXP=%u\n",
           p->name, p->x, p->y, p->hp, p->exp);
 }
 
@@ -177,14 +223,17 @@ int main(int argc, char* argv[]){
 
 	// Check the message
 
-	int status = handlespeak(m,sock);
+	if(handlespeak(m,sock)){
+	  perror("handlespeak");
+	}
 	
 	
       } else if(strcmp(command,"logout") == 0){
 	if (handlelogout(self->name,sock) < 0){
 	  perror("handlelogout");
 	}
-	isLogin = 0; // No longer logged in
+	freePlayers(others);
+	exit(1);
 
       } else {
 	printf("Unrecognized command.\n");
@@ -222,8 +271,8 @@ int main(int argc, char* argv[]){
       int j;
 
       /* for(j = 0; j < read_bytes; j++){ */
-/* 	printf("%02x ", buffer[j]); */
-/*       } */
+      /* 	printf("%02x ", buffer[j]); */
+      /*       } */
       
       unsigned char header_c[HEADER_LENGTH];
       while(offset < read_bytes){
@@ -233,42 +282,32 @@ int main(int argc, char* argv[]){
 	// Copy the headers
 	offset += HEADER_LENGTH;
 
-	for(j = 0; j < HEADER_LENGTH; j++){
-	  printf("%02x ", header_c[j]);
-	}
-
-	printf("\n");
-
 	// Cast it to struct header
 	struct header * hdr = (struct header *) header_c;
 
 	int payload_len = ntohs(hdr->len)-HEADER_LENGTH;
 
-	printf("payload_len: %d", payload_len);
-
 	char payload_c[payload_len];
+
 	for(j = 0; j < payload_len; j++){
 	  payload_c[j] = *(p+offset+j);
 	}
 
-	for(j = 0; j < HEADER_LENGTH; j++){
-	  printf("%02x ", header_c[j]);
-	}
-
-	offset += payload_len;
+	offset += payload_len; // Increment the offset
       
 	// @TODO: Check for the version
 
 	// Check for the msgtype
-	if(hdr->msgtype == LOGIN_REPLY){
-	  // LOGIN_REPLY
+	if(hdr->msgtype == LOGIN_REPLY){ // LOGIN REPLY
 
 	  struct login_reply * lreply = (struct login_reply *) payload_c;
 	  if(isLogin){
+
 	    // Treat it as a malformed package
 	    on_malformed_message_from_server();
 
 	  } else {
+
 	    on_login_reply(lreply->error_code);
 
 	    if(lreply->error_code == 0){
@@ -278,30 +317,13 @@ int main(int argc, char* argv[]){
 	      self->y = lreply->y;
 
 	      isLogin = 1;
-	    } else if (lreply->error_code == 1){
-	      
 	    }
 	  }
 	} else if(hdr->msgtype == MOVE_NOTIFY){
-	  /* printf("I got a move notify message.\n"); */
-/* 	  for(j = 0; j < 20; j++){ */
-/* 	    printf("%02x ", payload_c[j]); */
-/* 	  } */
-
-/* 	  printf("\n"); */
 
 	  struct move_notify * mn = (struct move_notify *) payload_c;
 	  Node *p;
 
-	  /* stats(self); */
-
-/* 	  printf("name: %s.\n", mn->name); */
-/* 	  printf("hp: %x.\n", ntohl(mn->hp)); */
-/* 	  printf("exp: %x.\n", ntohl(mn->exp)); */
-/* 	  printf("x: %02x.\n", mn->x); */
-/* 	  printf("y: %02x.\n", mn->y); */
-
-	  stats(self);
 	  if (strcmp(mn->name,self->name)==0){ // If the guy is self
 	    self->hp = ntohl(mn->hp);
 	    self->exp = ntohl(mn->exp);
@@ -352,8 +374,7 @@ int main(int argc, char* argv[]){
 	    } // End of if p == NULL
 	  }
 	  
-	} else if(hdr->msgtype == ATTACK_NOTIFY)
-	{
+	} else if(hdr->msgtype == ATTACK_NOTIFY){
 	  struct attack_notify * an = (struct attack_notify *)payload_c;
 	  Player * att = findPlayer(an->attacker_name, others);
 	  Player * vic = findPlayer(an->victim_name, others);
@@ -371,25 +392,35 @@ int main(int argc, char* argv[]){
 	  }
 	  
 	  
-	} else if(hdr->msgtype == SPEAK_NOTIFY)
-	{
-		struct speak_notify* sreply = (struct speak_notify*) payload_c;
-		unsigned char * message = sreply->msg;
-		unsigned char * name = sreply->broadcaster;
-    
-		// null terminated & no longer than 255
-		if(!check_player_message(message))
-		{
-		  printf("! Invalid format\n");
-		  continue;
-		}
+
+	} else if(hdr->msgtype == SPEAK_NOTIFY){ // SPEAK_NOTIFY
+	  struct speak_notify* sreply = (struct speak_notify*) payload_c;
+	  unsigned char * broadcaster = sreply->broadcaster;
+
+	  char * start = ((char*)payload_c)+10;
+
+	  // null terminated & no longer than 255
+	  if(!check_player_message(start)){ 		//TODO: need to check this in the send too!!
+	    printf("! Invalid format\n");
+	    continue;
+	  }
 		
-		printf("%s: %s\n",name,message);
-	} else if(hdr->msgtype == LOGOUT_NOTIFY)
-	{
-		struct logout_reply * loreply = (struct logout_reply *) payload_c;
-		printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
-	}
+	  printf("%s: %s\n",broadcaster,start);
+	} else if(hdr->msgtype == LOGOUT_NOTIFY){
+	  // Take the the player out of the database
+
+	  struct logout_reply * loreply = (struct logout_reply *) payload_c;
+	  removePlayer(loreply->name, others);
+	  printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
+
+
+	} else if(hdr->msgtype == INVALID_STATE){
+
+	  struct invalid_state * is = (struct invalid_state *) payload_c;
+	  on_invalid_state(is->error_code);
+
+	} // end of else if for hdr->msgtype
+
       }
     }
   }
