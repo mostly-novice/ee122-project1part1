@@ -75,13 +75,15 @@ unsigned int removePlayer(char * name, Node *list)
   }
 
   while( curr->next ){
-    if( strcmp( curr->next->datum->name,name )==0 ){
+    if(strcmp( curr->next->datum->name,name )==0 ){
+      printf("Found the guy who is logging out");
       temp = curr->next;
       curr->next = curr->next->next;
       free(temp->datum);
       free(temp);
     }
   }
+  return 1;
 }
 
 
@@ -159,10 +161,11 @@ int main(int argc, char* argv[]){
   if(connect(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){
     close(sock);
     on_client_connect_failure();
-    return;
+    exit(0);
   }
 
   
+  show_prompt();
 
   while(1){
     // Clear the set readfds;
@@ -181,7 +184,6 @@ int main(int argc, char* argv[]){
      */
     
     if(FD_ISSET(STDIN, &readfds)){
-      show_prompt();
       if(!readstdin(command,arg)){
 	continue;
       }
@@ -240,7 +242,8 @@ int main(int argc, char* argv[]){
 	  perror("handlelogout");
 	}
 	freePlayers(others);
-	exit(1);
+	show_prompt();
+	continue;
 
       } else if(strcmp(command,"whois") == 0){
 	printPlayers(others);
@@ -249,7 +252,7 @@ int main(int argc, char* argv[]){
 	printf("Unrecognized command.\n");
       }
 
-
+      show_prompt();
 
 
 
@@ -279,6 +282,7 @@ int main(int argc, char* argv[]){
       int read_bytes = recv(sock,buffer,expected_data_len,0);
       if (read_bytes == 0){
 	on_disconnection_from_server();
+	exit(0);
       }
       
       int j;
@@ -429,6 +433,7 @@ int main(int argc, char* argv[]){
 	  }
 		
 	  printf("%s: %s\n",broadcaster,start);
+	  show_prompt();
 	} else if(hdr->msgtype == LOGOUT_NOTIFY){
 	  // Take the the player out of the database
 

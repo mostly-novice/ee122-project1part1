@@ -5,6 +5,8 @@ int isVisible(int x1, int y1, int x2, int y2){
 int readstdin(char * command, char * arg){
   char mystring[300];
   char * pch;
+
+  setvbuf(stdin,NULL,_IONBF,1024 );
   fgets(mystring,300,stdin);
   if(strcmp(mystring,"\n")==0){
     return 0;
@@ -12,14 +14,13 @@ int readstdin(char * command, char * arg){
   mystring[strlen(mystring)-1] = 0;
   pch = strtok(mystring," ");
   strcpy(command,pch);
-  pch = strtok(NULL,' ');
+
+  pch += strlen(pch);
+
+  while(*(pch)==' ' || *(pch)=='\0'){
+    pch++;
+  }
+
   strcpy(arg, pch);
-
-  printf("Command:%s\n", command);
-  printf("Arg:%s\n", pch);
   return 1;
-}
-
-int main(){
-  readstdin();
 }

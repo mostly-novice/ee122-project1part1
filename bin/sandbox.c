@@ -33,10 +33,10 @@ void addPlayer(Node * node, Node * list, Node * tail){
 }
 
 int main(){
-  char mystring[300] = "login string.";
+  char mystring[300] = "speak I come for peace!";
   char * pch;
   char command[80];
-  char arg[80];
+  char arg[255];
   fgets(mystring,300,stdin);
   if(strcmp(mystring,"\n")==0){
     return 0;
@@ -44,10 +44,16 @@ int main(){
   mystring[strlen(mystring)-1] = 0;
   pch = strtok(mystring," ");
   strcpy(command,pch);
-  pch = strtok(NULL," ");
-  strcpy(arg, pch+strlen(pch)+1);
 
+  pch += strlen(pch);
+
+  while(*(pch)==' ' || *(pch)=='\0' ){
+    pch++;
+  }
+
+  strcpy(arg, pch);
+  
   printf("Command:%s\n", command);
-  printf("Arg:%s\n", pch);
+  printf("Arg:%s\n", arg);
   return 1;
 }
