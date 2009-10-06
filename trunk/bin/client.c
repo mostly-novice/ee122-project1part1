@@ -6,7 +6,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <stdbool.h>
 
 #include "header.h"
 #include "helper.h"
@@ -159,7 +158,7 @@ int main(int argc, char* argv[]){
 
   if(connect(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){
     close(sock);
-    perror("connection failed");
+    on_client_connect_failure();
     return;
   }
 
@@ -278,6 +277,9 @@ int main(int argc, char* argv[]){
       int offset = 0;
 
       int read_bytes = recv(sock,buffer,expected_data_len,0);
+      if (read_bytes == 0){
+	on_disconnection_from_server();
+      }
       
       int j;
 

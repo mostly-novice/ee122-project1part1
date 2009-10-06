@@ -12,6 +12,14 @@ int readstdin(char * command, char * arg){
   mystring[strlen(mystring)-1] = 0;
   pch = strtok(mystring," ");
   strcpy(command,pch);
-  strcpy(arg, pch+strlen(pch)+1);
+  pch = strtok(NULL,' ');
+  strcpy(arg, pch);
+
+  printf("Command:%s\n", command);
+  printf("Arg:%s\n", pch);
   return 1;
+}
+
+int main(){
+  readstdin();
 }
