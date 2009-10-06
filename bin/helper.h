@@ -2,7 +2,13 @@
 #include <stdlib.h>
 #include "constants.h"
 
-
+void printMessage(char * message, int len){
+  int i;
+  for(i = 0; i < len; i++){
+    printf("%02x ", *(message+i));
+  }
+  printf("\n");
+}
 
 //Helper: handle the various task in clients
 // TESTED
@@ -31,6 +37,8 @@ int handlelogin(char* name,int sock){
       tosent[j] = payload_c[j-4];
     }
   }
+
+  printMessage(tosent,16);
 
   // Send a login message to the server
   int bytes_sent = send(sock, tosent,16,0);
