@@ -52,6 +52,19 @@ void printPlayers(LinkedList * list){
   printf("---------------------\n");
 }
 
+Node * checkSelfVision(int x, int y, LinkedList * list){
+  Node * p;
+  for(p = list->head; p != NULL; p = p->next){
+    if (isVisible(x,y,p->datum->x,p->datum->y)){
+      on_move_notify(p->datum->name,
+		     p->datum->x,
+		     p->datum->y,
+		     p->datum->hp,
+		     p->datum->exp)
+    }
+  }
+  return NULL;
+}
 
 Node * findPlayer(char * name, LinkedList * list){
   Node * p;
@@ -250,6 +263,8 @@ int main(int argc, char* argv[]){
 	  continue;
 	}
 	int status = handlemove(d,sock);
+	
+	checkSelfVision(self->x,self->y,mylist);
 
       } else if(strcmp(command,"attack") == 0){ // ATTACK
 	char* victimname = arg;
@@ -414,6 +429,8 @@ int main(int argc, char* argv[]){
 	  struct move_notify * mn = (struct move_notify *) payload_c;
 	  Node *p;
 
+	  check_malformed_stats(mn->x,mn->y,ntohl(mn->hp),ntohl(mn->exp));
+
 	  if (strcmp(mn->name,self->name)==0){ // If the guy is self
 	    self->hp = ntohl(mn->hp);
 	    self->exp = ntohl(mn->exp);
@@ -421,6 +438,8 @@ int main(int argc, char* argv[]){
 	    self->y = mn->y;
 
 	    on_move_notify(self->name, self->x, self->y, self->hp,self->exp);
+
+	    find
 
 	  } else { // The guy is someone else
 
@@ -455,6 +474,9 @@ int main(int argc, char* argv[]){
 	      int oldv = isVisible(self->x,self->y,p->datum->x,p->datum->y);
 	      int newv = isVisible(self->x,self->y,mn->x,mn->y);
 
+	      p->datum->x = mn->x;
+	      p->datum->y = mn->y;
+	      
 	      if(oldv || newv){
 		initialize(p->datum,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
 		on_move_notify(p->datum->name, p->datum->x, p->datum->y, p->datum->hp,p->datum->exp);

@@ -163,3 +163,21 @@ static inline int check_player_message(const char *message)
 
 
 #endif /* _messages_h_ */
+
+static inline int check_malformed_stats(int x, int y, int hp, int exp){
+  if(x < 0 || x > 99){
+    on_malformed_message_from_server();
+  }
+
+  if(x < 0 || x > 99){
+    on_malformed_message_from_server();
+  }
+
+  if(hp < 1){
+    on_malformed_message_from_server();
+  }
+
+  if(exp < 0){
+    on_malformed_message_from_server();
+  }
+}
