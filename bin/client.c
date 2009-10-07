@@ -15,6 +15,10 @@
 #define STDIN 0
 #define HEADER_LENGTH 4
 
+// Debugging variables
+int mc; // malloc counter
+int fc; // free counter
+
 typedef struct P{
   char name[10];
   int hp;
@@ -55,38 +59,56 @@ Node * findPlayer(char * name, Node * list){
   return NULL;
 }
 
-unsigned int removePlayer(char * name, Node *list)
+unsigned int removePlayer(char * name, Node *list,Node*tail)
 {
+  printf("%x\n", list);
   Node * prev = list;
   Node * curr;
   Node * temp;
 	
   /* check for empty list */
   if(!list){
+    printf("The list is empty");
     return 0;
   }
 
   /* check if datum is in head of list */
   if(strcmp(prev->datum->name,name)==0){
+    if(strcmp(tail->datum->name,name)==0){ // if tail == head, this is the only guy
+      free(prev->datum);
+      fc++;
+      free(prev);
+      fc++;
+
+      tail = NULL;
+      list = NULL;
+      printf("list after setting to null: %x\n", list);
+      return 1;
+    }
     list = list->next;
+
     free(prev->datum);
+    fc++;
     free(prev);
+    fc++;
     return 1;
   }
 
   while( curr->next ){
-    if(strcmp( curr->next->datum->name,name )==0 ){
-      printf("Found the guy who is logging out");
+    if(strcmp( curr->next->datum->name,name )==0){
+      if(strcmp(tail->datum->name,curr->next->datum->name)==0){ // if item is the tail
+	tail = curr;
+      }
       temp = curr->next;
       curr->next = curr->next->next;
       free(temp->datum);
+      fc++;
       free(temp);
+      fc++;
     }
   }
   return 1;
 }
-
-
 
 Node * freePlayers(Node * list)
 {
@@ -98,7 +120,9 @@ Node * freePlayers(Node * list)
       curr = head;
       head = curr->next;
       free(curr->datum);
+      fc++;
       free(curr);
+      fc++;
     }
 
 }
@@ -111,10 +135,19 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   object->y = y;
 }
 
+// Printing out the relevant statistics
+void printStat(){
+  printf("\n");
+  printf("Number of mallocs:%d\n",mc);
+  printf("Number of frees:%d\n",fc);
+  printf("\n");
+}
+
 int main(int argc, char* argv[]){
 
   // Model Variables
   Player * self = (Player *) malloc(sizeof(Player)); // Remember to free this
+  mc++; // Debugging memory leak
   Node * others;
   Node * tail;
 
@@ -190,6 +223,12 @@ int main(int argc, char* argv[]){
 
       if (strcmp(command,"login") == 0){ // LOGIN
 	char* name = arg; // TODO: Sanity check the input.'
+
+	if(!check_player_name(name)){
+	  printf("! Invalid syntax.\n");
+	  show_prompt();
+	  continue;
+	}
 	
 	strcpy(self->name,arg);
 	int status = handlelogin(name,sock);
@@ -197,7 +236,17 @@ int main(int argc, char* argv[]){
 
       } else if(strcmp(command,"move") == 0){ // MOVE
 	char* direction = arg;
-	int status = handlemove(direction,sock);
+	unsigned char d;
+
+	if(strcmp(direction,"north")==0){       d = NORTH;
+	}else if(strcmp(direction,"south")==0){ d = SOUTH;
+	}else if(strcmp(direction,"east")==0){  d = EAST;
+	}else if(strcmp(direction,"west")==0){  d = WEST;
+	} else {
+	  printf("! Invalid direction: %s", arg);
+	  continue;
+	}
+	int status = handlemove(d,sock);
 
 
       } else if(strcmp(command,"attack") == 0){ // ATTACK
@@ -213,12 +262,13 @@ int main(int argc, char* argv[]){
 
 	// Search for the guy in the list
 	Node * vic = findPlayer(victimname,others);
-	Player * victim = vic->datum;
 
-	if (!victim){ // If it is NULL
+	if (!vic){ // If it is NULL
 	  on_not_visible();
 	  continue;
 	}
+
+	Player * victim = vic->datum;
 
 	int isvisible = isVisible(self->x,self->y,victim->x,victim->y);
 
@@ -241,9 +291,18 @@ int main(int argc, char* argv[]){
 	if (handlelogout(self->name,sock) < 0){
 	  perror("handlelogout");
 	}
+
+	free(self);
+	fc++;
 	freePlayers(others);
-	show_prompt();
-	continue;
+	
+	if(close(sock) < 0){
+	  perror("logout - close");
+	  break;
+	}
+
+	printStat();
+	break;
 
       } else if(strcmp(command,"whois") == 0){
 	printPlayers(others);
@@ -357,8 +416,10 @@ int main(int argc, char* argv[]){
 	      
 	      // Adding the player
 	      Node * node = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
+	      mc++;
 
 	      Player * newplayer = (Player*) malloc(sizeof(Player)); // TODO: remember to free this first
+	      mc++;
 	      initialize(newplayer,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
 	      node->datum = newplayer;
 	      node->next = NULL;
@@ -418,7 +479,6 @@ int main(int argc, char* argv[]){
 	    on_attack_notify(att->name,vic->name,damage,updated_hp);
 	  }
 	  
-	  
 
 	} else if(hdr->msgtype == SPEAK_NOTIFY){ // SPEAK_NOTIFY
 	  struct speak_notify* sreply = (struct speak_notify*) payload_c;
@@ -427,22 +487,25 @@ int main(int argc, char* argv[]){
 	  char * start = ((char*)payload_c)+10;
 
 	  // null terminated & no longer than 255
-	  if(!check_player_message(start)){ 		//TODO: need to check this in the send too!!
-	    printf("! Invalid format\n");
-	    continue;
-	  }
-		
+	  if(!check_player_message(start)){ printf("! Invalid format\n"); continue;}		
 	  printf("%s: %s\n",broadcaster,start);
 	  show_prompt();
+
+
 	} else if(hdr->msgtype == LOGOUT_NOTIFY){
 	  // Take the the player out of the database
 
 	  struct logout_reply * loreply = (struct logout_reply *) payload_c;
-	  if (removePlayer(loreply->name, others)){
+	  printf("others: %x\n.", others);
+	  if (!removePlayer(loreply->name, others,tail)){
 	    perror("LOGOUT_NOTIFY - remove player");
 	    exit(-1);
 	  }
+	  printf("others: %x\n.", others);
+	  
+	  printf("Is other NULL? %d.\n", others==NULL);
 	  printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
+	  show_prompt();
 
 
 	} else if(hdr->msgtype == INVALID_STATE){
