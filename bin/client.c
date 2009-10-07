@@ -61,71 +61,53 @@ Node * findPlayer(char * name, Node * list){
 
 unsigned int removePlayer(char * name, Node *list,Node*tail)
 {
-  printf("%x\n", list);
-  Node * prev = list;
-  Node * curr;
-  Node * temp;
-	
-  /* check for empty list */
-  if(!list){
-    printf("The list is empty");
-    return 0;
-  }
+    Node * cur, *temp, *prev;
+    cur = list;
+    temp = prev = NULL;
 
-  /* check if datum is in head of list */
-  if(strcmp(prev->datum->name,name)==0){
-    if(strcmp(tail->datum->name,name)==0){ // if tail == head, this is the only guy
-      free(prev->datum);
-      fc++;
-      free(prev);
-      fc++;
-
-      tail = NULL;
-      list = NULL;
-      printf("list after setting to null: %x\n", list);
-      return 1;
+    /* check for empty list */
+    if(!list){
+        printf("The list is empty");
+        return 0;
     }
-    list = list->next;
 
-    free(prev->datum);
-    fc++;
-    free(prev);
-    fc++;
-    return 1;
-  }
-
-  while( curr->next ){
-    if(strcmp( curr->next->datum->name,name )==0){
-      if(strcmp(tail->datum->name,curr->next->datum->name)==0){ // if item is the tail
-	tail = curr;
-      }
-      temp = curr->next;
-      curr->next = curr->next->next;
-      free(temp->datum);
-      fc++;
-      free(temp);
-      fc++;
+    /* check head */
+    if(strcmp(list->datum->name,name)==0)
+    {
+        printf("deleting the head!\n");
+        cur = list;
+        list = list->next;
     }
-  }
-  return 1;
+
+    /* check the rest */
+    while(cur->next)
+    {
+        prev = cur;
+        cur = cur->next;
+        if(strcmp(cur->datum->name,name)==0)
+        {
+            prev->next = cur->next;
+            free(cur->datum);
+            free(cur);
+        }
+    }
+    return 1; /* success */
 }
 
-Node * freePlayers(Node * list)
+
+void freePlayers(Node * list)
 {
   // To free all the players after log out
-  Node * head = list;
-  Node * curr;
-  while(head)
+  Node * cur;
+  while(list->next)
     {
-      curr = head;
-      head = curr->next;
-      free(curr->datum);
-      fc++;
-      free(curr);
-      fc++;
+      cur = list;
+      list = list->next;
+      free(cur->datum);
+      free(cur);
     }
-
 }
+
 
 void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   strcpy(object->name,name);
