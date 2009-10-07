@@ -15,44 +15,32 @@ void printMessage(char * message, int len){
 int handlelogin(char* name,int sock){
   int i = 0;
   int j;
-
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
   struct login_request * payload = (struct login_request *) malloc(sizeof(int)*3); // remember to free this
-
   hdr->version = 0x04;
   hdr->len = htons(0x0010);
   hdr->msgtype = 0x1;
-
   strcpy(payload->name,name);
-
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
   unsigned char tosent[16];
 
   for(j = 0; j < 16; j++){
-    if(j<4){
-      tosent[j] = header_c[j];
-    } else {
-      tosent[j] = payload_c[j-4];
-    }
+    if(j<4) tosent[j] = header_c[j];
+    else tosent[j] = payload_c[j-4];
   }
 
   // Send a login message to the server
   int bytes_sent = send(sock, tosent,16,0);
-  if (bytes_sent < 0) {
-    perror("send failed");
-  } else {
-    //printf("Sent: %d bytes\n", bytes_sent);
-  }
-
+  if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
   return 0;
 }
 
 // TESTED
-int handlemove(char * direction, int sock){
+int handlemove(unsigned char d, int sock){
   struct header *hdr = (struct header *) malloc(sizeof(int)); // Remember to free this
   struct move * payload = (struct move *) malloc(sizeof(int)); // Remember to free this
   int j;
@@ -61,20 +49,8 @@ int handlemove(char * direction, int sock){
   hdr->len = htons(0x08);
   hdr->msgtype = MOVE;
 
-  unsigned char d;
-  if(strcmp(direction,"north")==0){
-    payload->direction = NORTH;
+  payload->direction = d;
 
-  }else if(strcmp(direction,"south")==0){
-    payload->direction = SOUTH;
-  }else if(strcmp(direction,"east")==0){
-    payload->direction = EAST;
-  }else if(strcmp(direction,"west")==0){
-    payload->direction = WEST;
-  } else {
-    perror("handlemove - wrong direction");
-    return -1;
-  }
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
   unsigned char tosent[8];
