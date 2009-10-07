@@ -34,24 +34,29 @@ struct list_el {
 
 typedef struct list_el Node;
 
+typedef struct ll{
+  Node * head;
+  Node * tail;
+} LinkedList;
+
 void stats(Player * p){
   fprintf(stdout, "%s: location=(%u,%u), HP=%u, EXP=%u\n",
           p->name, p->x, p->y, p->hp, p->exp);
 }
 
-void printPlayers(Node * list){
-  Node * p;
+void printPlayers(LinkedList * list){
+  Node * n;
   printf("People in the list:\n");
-  for(p = list; p != NULL; p = p->next){
-    stats(p->datum);
+  for(n = list->head; n != NULL; n = n->next){
+    stats(n->datum);
   }
   printf("---------------------\n");
 }
 
 
-Node * findPlayer(char * name, Node * list){
+Node * findPlayer(char * name, LinkedList * list){
   Node * p;
-  for(p = list; p != NULL; p = p->next){
+  for(p = list->head; p != NULL; p = p->next){
     if (strcmp(p->datum->name,name)==0){
       return p;
     }
@@ -59,55 +64,66 @@ Node * findPlayer(char * name, Node * list){
   return NULL;
 }
 
-unsigned int removePlayer(char * name, Node *list,Node*tail)
+unsigned int removePlayer(char * name, LinkedList * list)
 {
-    Node * cur, *temp, *prev;
-    cur = list;
-    temp = prev = NULL;
+  Node * prev = list->head;
+  Node * curr = list->head ;
+  Node * temp;
+	
+  /* check for empty list */
+  if(!prev){ printf("The list is empty"); return 0; }
 
-    /* check for empty list */
-    if(!list){
-        printf("The list is empty");
-        return 0;
-    }
+  /* check if datum is in head of list */
+  if(strcmp(prev->datum->name,name)==0){
+    if(strcmp(list->tail->datum->name,name)==0){ // if tail == head, this is the only guy
+      free(prev->datum);
+      fc++;
+      free(prev);
+      fc++;
 
-    /* check head */
-    if(strcmp(list->datum->name,name)==0)
-    {
-        printf("deleting the head!\n");
-        cur = list;
-        list = list->next;
+      list->head = NULL;
+      list->tail = NULL;
+      return 1;
     }
+    list->head = list->head->next;
 
-    /* check the rest */
-    while(cur->next)
-    {
-        prev = cur;
-        cur = cur->next;
-        if(strcmp(cur->datum->name,name)==0)
-        {
-            prev->next = cur->next;
-            free(cur->datum);
-            free(cur);
-        }
+    free(prev->datum);
+    free(prev);
+    return 1;
+  }
+
+  while( curr->next ){
+    if(strcmp( curr->next->datum->name,name )==0){
+      if(strcmp(list->tail->datum->name
+		,name)==0){ // if item is the tail
+	list->tail = curr;
+      }
+
+      temp = curr->next;
+      curr->next = curr->next->next;
+
+      free(temp->datum);
+      free(temp);
     }
-    return 1; /* success */
+  }
+  return 1;
 }
 
-
-void freePlayers(Node * list)
+Node * freePlayers(LinkedList * list)
 {
   // To free all the players after log out
-  Node * cur;
-  while(list->next)
+  Node * curr;
+  while(list->head)
     {
-      cur = list;
-      list = list->next;
-      free(cur->datum);
-      free(cur);
+      curr = list->head;
+      list->head = curr->next;
+      free(curr->datum);
+      fc++;
+      free(curr);
+      fc++;
     }
-}
 
+}
 
 void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   strcpy(object->name,name);
@@ -130,15 +146,14 @@ int main(int argc, char* argv[]){
   // Model Variables
   Player * self = (Player *) malloc(sizeof(Player)); // Remember to free this
   mc++; // Debugging memory leak
-  Node * others;
-  Node * tail;
-
+  LinkedList * mylist = (LinkedList *) malloc (sizeof(LinkedList));
+  mc++;
+  mylist->head = NULL;
+  mylist->tail = NULL;
   Node * p;
-
   int isLogin = 0;
   char command[80];
-  char arg[80];
-
+  char arg[4000];
   // Connection variables
   int sock;
   int serverIP;
@@ -154,9 +169,7 @@ int main(int argc, char* argv[]){
   memset(&sin, 0, sizeof(sin));
 
 
-  if(argc < 4){
-    printf("Usage: ./client -s <server IP address> -p <server port>");
-  }
+  if(argc < 4){ printf("Usage: ./client -s <server IP address> -p <server port>");}
 
   // Initilizations
   
@@ -174,12 +187,15 @@ int main(int argc, char* argv[]){
   sin.sin_port = htons(serverPort);
 
   if(connect(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){
+    perror("client - connect");
+    freePlayers(mylist);
+    free(self);
+    free(mylist);
+
     close(sock);
     on_client_connect_failure();
-    exit(0);
+    abort();
   }
-
-  
   show_prompt();
 
   while(1){
@@ -213,11 +229,17 @@ int main(int argc, char* argv[]){
 	}
 	
 	strcpy(self->name,arg);
+
 	int status = handlelogin(name,sock);
 
 
       } else if(strcmp(command,"move") == 0){ // MOVE
 	char* direction = arg;
+	if (strcmp(arg,"")==0x40){
+	  printf("! Invalid syntax\n");
+	  show_prompt();
+	  continue;
+	}
 	unsigned char d;
 
 	if(strcmp(direction,"north")==0){       d = NORTH;
@@ -225,15 +247,15 @@ int main(int argc, char* argv[]){
 	}else if(strcmp(direction,"east")==0){  d = EAST;
 	}else if(strcmp(direction,"west")==0){  d = WEST;
 	} else {
-	  printf("! Invalid direction: %s", arg);
+	  printf("! Invalid direction: %s\n", arg);
 	  continue;
 	}
 	int status = handlemove(d,sock);
 
-
       } else if(strcmp(command,"attack") == 0){ // ATTACK
 	char* victimname = arg;
 	if(strcmp(victimname,self->name)== 0){
+	  show_prompt();
 	  continue;
 	}
 
@@ -243,7 +265,7 @@ int main(int argc, char* argv[]){
 	}
 
 	// Search for the guy in the list
-	Node * vic = findPlayer(victimname,others);
+	Node * vic = findPlayer(victimname,mylist);
 
 	if (!vic){ // If it is NULL
 	  on_not_visible();
@@ -263,41 +285,40 @@ int main(int argc, char* argv[]){
 	char * m = arg;
 
 	// Check the message
-
-	if(handlespeak(m,sock)){
-	  perror("handlespeak");
-	}
+	if(!check_player_message(m)){ printf("! Invalid text message.\n"); show_prompt(); continue;}
+	if(handlespeak(m,sock)){ perror("handlespeak"); }
 	
 	
       } else if(strcmp(command,"logout") == 0){
-	if (handlelogout(self->name,sock) < 0){
-	  perror("handlelogout");
+	if(!isLogin){
+	  show_prompt();
+	  printf("You must login first.\n");
+	  show_prompt();
+	  continue;
 	}
-
+	if (handlelogout(self->name,sock) < 0){ perror("handlelogout");}
 	free(self);
 	fc++;
-	freePlayers(others);
+	freePlayers(mylist); // Free every player in the list
+	free(mylist); // Free the list
+	fc++;
 	
 	if(close(sock) < 0){
 	  perror("logout - close");
 	  break;
 	}
-
-	printStat();
+	//printStat();
 	break;
-
       } else if(strcmp(command,"whois") == 0){
-	printPlayers(others);
+	printPlayers(mylist);
 
+      } else if(strcmp(command,"whoami")==0){
+	stats(self);
       } else {
-	printf("Unrecognized command.\n");
+	printf("Available command: login, move, attack, speak, logout.\n");
       }
 
       show_prompt();
-
-
-
-
 
 
 
@@ -321,27 +342,41 @@ int main(int argc, char* argv[]){
       int offset = 0;
 
       int read_bytes = recv(sock,buffer,expected_data_len,0);
-      if (read_bytes == 0){
+      if (read_bytes == 0){ // Disconnected from the server
+	// Free memory
+	freePlayers(mylist);
+	free(self);
+	free(mylist);
 	on_disconnection_from_server();
-	exit(0);
+	break;
       }
       
-      int j;
+      if(read_bytes % 4 != 0){ // 32-bit aligned\
+	// Free memory
+	printf("! Message is not 32-bit aligned\n");
+	freePlayers(mylist);
+	free(self);
+	free(mylist);
+	on_malformed_message_from_server();
+      }
 
-      /* for(j = 0; j < read_bytes; j++){ */
-      /* 	printf("%02x ", buffer[j]); */
-      /*       } */
+      int j;
       
       unsigned char header_c[HEADER_LENGTH];
       while(offset < read_bytes){
-	for(j = 0; j < HEADER_LENGTH; j++){
-	  header_c[j] = *(p+offset+j);
-	}
-	// Copy the headers
+	for(j = 0; j < HEADER_LENGTH; j++){header_c[j] = *(p+offset+j);}
 	offset += HEADER_LENGTH;
 
 	// Cast it to struct header
 	struct header * hdr = (struct header *) header_c;
+
+	if (hdr->version != 0x4){ // Check for version number
+	  // Free memory
+	  freePlayers(mylist);
+	  free(self);
+	  free(mylist);
+	  on_malformed_message_from_server();
+	}
 
 	int payload_len = ntohs(hdr->len)-HEADER_LENGTH;
 
@@ -378,7 +413,6 @@ int main(int argc, char* argv[]){
 	    }
 	  }
 	} else if(hdr->msgtype == MOVE_NOTIFY){
-
 	  struct move_notify * mn = (struct move_notify *) payload_c;
 	  Node *p;
 
@@ -392,7 +426,7 @@ int main(int argc, char* argv[]){
 
 	  } else { // The guy is someone else
 
-	    p = findPlayer(mn->name,others);
+	    p = findPlayer(mn->name,mylist);
 
 	    if(p == NULL){ // Not in the list
 	      
@@ -407,12 +441,12 @@ int main(int argc, char* argv[]){
 	      node->next = NULL;
 
 
-	      if(tail == NULL && others == NULL){ // First player
-		tail = node;
-		others = node;
+	      if(mylist->tail == NULL && mylist->head == NULL){ // First player
+		mylist->tail = node;
+		mylist->head = node;
 	      } else {
-		tail->next = node;
-		tail = node;
+		mylist->tail->next = node;
+		mylist->tail = node;
 	      }
 
 	      // Printing
@@ -439,14 +473,14 @@ int main(int argc, char* argv[]){
 	  if (strcmp(an->attacker_name,self->name)==0){
 	    att = self;
 	  } else {
-	    Node * att_node = findPlayer(an->attacker_name, others);
+	    Node * att_node = findPlayer(an->attacker_name,mylist);
 	    att = att_node->datum;
 	  }
 
 	  if (strcmp(an->victim_name,self->name)==0){
 	    vic = self;
 	  } else {
-	    Node * vic_node = findPlayer(an->victim_name, others);
+	    Node * vic_node = findPlayer(an->victim_name,mylist);
 	    vic = vic_node->datum;
 	  }
 
@@ -478,14 +512,11 @@ int main(int argc, char* argv[]){
 	  // Take the the player out of the database
 
 	  struct logout_reply * loreply = (struct logout_reply *) payload_c;
-	  printf("others: %x\n.", others);
-	  if (!removePlayer(loreply->name, others,tail)){
+	  if (!removePlayer(loreply->name, mylist)){
 	    perror("LOGOUT_NOTIFY - remove player");
 	    exit(-1);
 	  }
-	  printf("others: %x\n.", others);
 	  
-	  printf("Is other NULL? %d.\n", others==NULL);
 	  printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
 	  show_prompt();
 
