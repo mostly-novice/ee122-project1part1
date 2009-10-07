@@ -1,0 +1,6 @@
+Name: Phuc Xuan Nguyen
+login: cs122-cn
+Name: Kevin Friedheim
+login: cs122-cv
+
+How to compile: gcc -o client -lsocket -lnsl client.c
