@@ -169,15 +169,18 @@ int handlelogout(char * name,int sock){
   hdr->len = htons(0x4);
   hdr->msgtype = LOGOUT;
 
-  char * tosent = (char*) hdr;
+  char * header_c = (char*) hdr;
+  unsigned char tosent[4];
+
+  for(j = 0; j < 4; j++){
+      tosent[j] = header_c[j];
+  }
 
   // Sending the message;
   int bytes_sent = send(sock,tosent,4,0);
   if (bytes_sent < 0){
     perror("send failed.\n");
-    return -1;
-  } else {
-    //printf("Send: %d bytes\n", bytes_sent);
+    free(hdr);
   }
   free(hdr);
 }

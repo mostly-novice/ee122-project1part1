@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "constants.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -303,10 +302,9 @@ int main(int argc, char* argv[]){
 	free(mylist); // Free the list
 	fc++;
 	
-	if(close(sock) < 0){
-	  perror("logout - close");
-	  break;
-	}
+	show_prompt();
+	on_disconnection_from_server();
+	
 	//printStat();
 	break;
       } else if(strcmp(command,"whois") == 0){
