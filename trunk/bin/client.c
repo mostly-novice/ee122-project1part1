@@ -98,44 +98,40 @@ Node * findPlayer(char * name, LinkedList * list){
 
 unsigned int removePlayer(char * name, LinkedList * list)
 {
-  Node * prev = list->head;
+  Node * prev = NULL;
   Node * curr = list->head ;
   Node * temp;
 	
   /* check for empty list */
-  if(!prev){ printf("The list is empty"); return 0; }
+  if(!curr){ printf("The list is empty"); return 0; }
 
   /* check if datum is in head of list */
-  if(strcmp(prev->datum->name,name)==0){
+  if(strcmp(list->head->datum->name,name)==0){
     if(strcmp(list->tail->datum->name,name)==0){ // if tail == head, this is the only guy
-      free(prev->datum);
-      fc++;
-      free(prev);
-      fc++;
+      free(list->head->datum);
+      free(list->head);
 
       list->head = NULL;
       list->tail = NULL;
       return 1;
     }
-    list->head = list->head->next;
 
-    free(prev->datum);
-    free(prev);
+    curr = list->head;
+    free(curr->datum);
+    free(curr);
+    list->head = list->head->next;
     return 1;
   }
 
   while( curr->next ){
-    if(strcmp( curr->next->datum->name,name )==0){
-      if(strcmp(list->tail->datum->name
-		,name)==0){ // if item is the tail
-	list->tail = curr;
-      }
-
-      temp = curr->next;
-      curr->next = curr->next->next;
-
-      free(temp->datum);
-      free(temp);
+    prev = curr;
+    curr = curr->next;
+    if(strcmp( curr->datum->name,name )==0){
+      if(strcmp(list->tail->datum->name,name)==0){
+	list->tail = prev;}
+      prev->next = curr->next;
+      free(curr->datum);
+      free(curr);
     }
   }
   return 1;
@@ -352,6 +348,7 @@ int main(int argc, char* argv[]){
 	  continue;
 	}
 	if (handlelogout(self->name,sock) < 0){ perror("handlelogout");}
+	free(buffer);
 	free(self);
 	freePlayers(mylist); // Free every player in the list
 	free(mylist); // Free the list
@@ -415,15 +412,16 @@ int main(int argc, char* argv[]){
 
 	    hdr = (struct header *) header_c;
 	    check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
-	    desire_length = ntohs(hdr->len)-4;
-	    flag = PAYLOAD;
 
 	    // Move the pointers
 	    char * temp = (char*) malloc(sizeof(char)*(buffer_size-HEADER_LENGTH));
 	    memcpy(temp,buffer+4,buffer_size-4);
 	    free(buffer);
+
 	    buffer = temp;
 	    buffer_size -= 4;
+	    desire_length = ntohs(hdr->len)-4;
+	    flag = PAYLOAD;
 
 	  } else { // Payload
 	    // Move the pointers
