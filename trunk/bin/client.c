@@ -414,7 +414,6 @@ int main(int argc, char* argv[]){
 	    for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
 
 	    if(hdr->msgtype == LOGIN_REPLY){ // LOGIN REPLY
-	      printf("Login_reply");
 	      if(isLogin) on_malformed_message_from_server();
 	      process_login_reply(payload_c,self);
 	      isLogin = 1;
