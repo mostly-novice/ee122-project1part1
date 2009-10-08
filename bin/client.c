@@ -24,6 +24,7 @@ typedef struct P{
   int exp;
   int x;
   int y;
+  int visible;
 } Player;
 
 struct list_el {
@@ -52,18 +53,31 @@ void printPlayers(LinkedList * list){
   printf("---------------------\n");
 }
 
-Node * checkSelfVision(int x, int y, LinkedList * list){
+void updateSelfVision(int x, int y, LinkedList * list){
   Node * p;
   for(p = list->head; p != NULL; p = p->next){
     if (isVisible(x,y,p->datum->x,p->datum->y)){
-      on_move_notify(p->datum->name,
-		     p->datum->x,
-		     p->datum->y,
-		     p->datum->hp,
-		     p->datum->exp)
+      p->datum->visible = 1;
     }
   }
-  return NULL;
+}
+
+void checkSelfVision(int x, int y, LinkedList * list){
+  Node * p;
+  for(p = list->head; p != NULL; p = p->next){
+    if (isVisible(x,y,p->datum->x,p->datum->y)){
+      if (p->datum->visible==0){
+	p->datum->visible = 1;
+	on_move_notify(p->datum->name,
+		       p->datum->x,
+		       p->datum->y,
+		       p->datum->hp,
+		       p->datum->exp);
+      }
+    } else {
+      p->datum->visible = 0;
+    }
+  }
 }
 
 Node * findPlayer(char * name, LinkedList * list){
@@ -263,9 +277,6 @@ int main(int argc, char* argv[]){
 	  continue;
 	}
 	int status = handlemove(d,sock);
-	
-	checkSelfVision(self->x,self->y,mylist);
-
       } else if(strcmp(command,"attack") == 0){ // ATTACK
 	char* victimname = arg;
 	if(strcmp(victimname,self->name)== 0){
@@ -318,9 +329,7 @@ int main(int argc, char* argv[]){
 	fc++;
 	
 	show_prompt();
-	on_disconnection_from_server();
-	
-	//printStat();
+	on_disconnection_from_server();	
 	break;
       } else if(strcmp(command,"whois") == 0){
 	printPlayers(mylist);
@@ -421,8 +430,8 @@ int main(int argc, char* argv[]){
 	      self->exp = ntohl(lreply->exp);
 	      self->x = lreply->x;
 	      self->y = lreply->y;
-
 	      isLogin = 1;
+	    } else { //TODO
 	    }
 	  }
 	} else if(hdr->msgtype == MOVE_NOTIFY){
@@ -436,28 +445,15 @@ int main(int argc, char* argv[]){
 	    self->exp = ntohl(mn->exp);
 	    self->x = mn->x;
 	    self->y = mn->y;
-
 	    on_move_notify(self->name, self->x, self->y, self->hp,self->exp);
-
-	    find
-
 	  } else { // The guy is someone else
-
 	    p = findPlayer(mn->name,mylist);
-
 	    if(p == NULL){ // Not in the list
-	      
-	      // Adding the player
 	      Node * node = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
-	      mc++;
-
 	      Player * newplayer = (Player*) malloc(sizeof(Player)); // TODO: remember to free this first
-	      mc++;
 	      initialize(newplayer,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
 	      node->datum = newplayer;
 	      node->next = NULL;
-
-
 	      if(mylist->tail == NULL && mylist->head == NULL){ // First player
 		mylist->tail = node;
 		mylist->head = node;
@@ -465,26 +461,18 @@ int main(int argc, char* argv[]){
 		mylist->tail->next = node;
 		mylist->tail = node;
 	      }
-
-	      // Printing
-	      if (isVisible(self->x,self->y,newplayer->x,newplayer->y))
-		on_move_notify(newplayer->name, newplayer->x, newplayer->y, newplayer->hp,newplayer->exp);
-
 	    } else { // The guy is in the list
 	      int oldv = isVisible(self->x,self->y,p->datum->x,p->datum->y);
 	      int newv = isVisible(self->x,self->y,mn->x,mn->y);
-
 	      p->datum->x = mn->x;
 	      p->datum->y = mn->y;
-	      
-	      if(oldv || newv){
-		initialize(p->datum,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
-		on_move_notify(p->datum->name, p->datum->x, p->datum->y, p->datum->hp,p->datum->exp);
-	      }
-
+	      if(oldv || newv){initialize(p->datum,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);}
 	    } // End inner if
 	  }
-	  
+
+	  checkSelfVision(self->x,self->y,mylist);
+
+	  	  
 	} else if(hdr->msgtype == ATTACK_NOTIFY){
 	  struct attack_notify * an = (struct attack_notify *)payload_c;
 	  Player * att;
