@@ -162,4 +162,30 @@ static inline int check_player_message(const char *message)
 }
 
 
+static inline int check_malformed_header(int version, int len, int msgtype){
+  if(version != 4) on_malformed_message_from_server();
+  if(len%4 != 0) on_malformed_message_from_server();
+  if(msgtype<0 || msgtype>0xb) on_malformed_message_from_server();
+}
+
+static inline int check_malformed_stats(int x, int y, int hp, int exp){
+  if(x < 0 || x > 99){
+    on_malformed_message_from_server();
+  }
+
+  if(x < 0 || x > 99){
+    on_malformed_message_from_server();
+  }
+
+  if(hp < 1){
+    on_malformed_message_from_server();
+  }
+
+  if(exp < 0){
+    on_malformed_message_from_server();
+  }
+  return 0;
+}
+
+
 #endif /* _messages_h_ */
