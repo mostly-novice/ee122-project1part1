@@ -462,28 +462,29 @@ int main(int argc, char* argv[]){
 		mylist->tail = node;
 	      }
 	    } else { // The guy is in the list
-	      int oldv = isVisible(self->x,self->y,p->datum->x,p->datum->y);
-	      int newv = isVisible(self->x,self->y,mn->x,mn->y);
-	      p->datum->x = mn->x;
-	      p->datum->y = mn->y;
-	      if(oldv || newv){initialize(p->datum,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);}
-	    } // End inner if
-	  }
+            int oldv = isVisible(self->x,self->y,p->datum->x,p->datum->y);
+            int newv = isVisible(self->x,self->y,mn->x,mn->y);
+            initialize(p->datum,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
 
-	  checkSelfVision(self->x,self->y,mylist);
+            if(oldv || newv){
+                on_move_notify(p->datum->name,p->datum->x,p->datum->y,p->datum->hp,p->datum->exp);
+            }
 
-	  	  
-	} else if(hdr->msgtype == ATTACK_NOTIFY){
-	  struct attack_notify * an = (struct attack_notify *)payload_c;
-	  Player * att;
-	  Player * vic;
 
-	  if (strcmp(an->attacker_name,self->name)==0){
-	    att = self;
-	  } else {
-	    Node * att_node = findPlayer(an->attacker_name,mylist);
-	    att = att_node->datum;
-	  }
+            checkSelfVision(self->x,self->y,mylist);
+
+
+        } else if(hdr->msgtype == ATTACK_NOTIFY){
+            struct attack_notify * an = (struct attack_notify *)payload_c;
+            Player * att;
+            Player * vic;
+
+            if (strcmp(an->attacker_name,self->name)==0){
+                att = self;
+            } else {
+                Node * att_node = findPlayer(an->attacker_name,mylist);
+                att = att_node->datum;
+            }
 
 	  if (strcmp(an->victim_name,self->name)==0){
 	    vic = self;
