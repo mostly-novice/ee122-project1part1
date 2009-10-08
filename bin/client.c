@@ -5,6 +5,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #include "header.h"
 #include "helper.h"
@@ -204,9 +206,26 @@ int main(int argc, char* argv[]){
   if(argc < 4){ printf("Usage: ./client -s <server IP address> -p <server port>");}
 
   // Initilizations
+  int c;
+  char* svalue=NULL;
+  char* pvalue=NULL;
+
+  while( (c=getopt( argc,argv,"s:p:"))!=-1){
+    switch(c){
+    case 's':
+      svalue=optarg;
+      break;
+    case 'p':
+      pvalue=optarg;
+      break;
+    default:
+      printf("Usage: ./client -s <server IP address> -p <server port>");
+      return 0;
+    }
+  }
   
-  serverIP = argv[2];
-  serverPort = atoi(argv[4]);
+  serverIP = svalue;
+  serverPort = atoi(pvalue);
 
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if(sock < 0){
