@@ -1,5 +1,6 @@
 int process_login_reply(char payload_c[],Player * self){
   struct login_reply * lreply = (struct login_reply *) payload_c;
+  check_malformed_stats(lreply->x,lreply->x,ntohl(lreply->hp),ntohl(lreply->exp));
   on_login_reply(lreply->error_code);
   if(lreply->error_code == 0){
     self->hp = ntohl(lreply->hp);
@@ -14,7 +15,8 @@ int process_login_reply(char payload_c[],Player * self){
 int process_move_notify(char payload_c[], Player * self, LinkedList * mylist){
   struct move_notify * mn = (struct move_notify *) payload_c;
   Node *p;
-  check_malformed_stats(mn->x,mn->y,ntohl(mn->hp),ntohl(mn->exp));
+  check_malformed_move(mn->name,mn->x,mn->y,ntohl(mn->hp),ntohl(mn->exp));
+
   if (strcmp(mn->name,self->name)==0){ // If the guy is self
     self->hp = ntohl(mn->hp);
     self->exp = ntohl(mn->exp);
@@ -48,6 +50,7 @@ int process_move_notify(char payload_c[], Player * self, LinkedList * mylist){
 
 int process_attack_notify(char payload_c[], Player * self, LinkedList * mylist){
   struct attack_notify * an = (struct attack_notify *)payload_c;
+  check_malformed_attack(an->attackname,an->victim_name,an->damage,ntohl(an->hp));
   Player * att;
   Player * vic;
 
@@ -80,6 +83,7 @@ int process_speak_notify(char payload_c[]){
   unsigned char * broadcaster = sreply->broadcaster;
 
   char * start = ((char*)payload_c)+10;
+  check_malformed_speak(broadcaster,start);
 
   // null terminated & no longer than 255
   if(!check_player_message(start)){ printf("! Invalid format\n"); return 0;}		
@@ -90,6 +94,7 @@ int process_speak_notify(char payload_c[]){
 
 int process_logout_notify(char payload_c[], LinkedList * mylist){
   struct logout_reply * loreply = (struct logout_reply *) payload_c;
+  check_malformed_logout(loreply->name);
   if (!removePlayer(loreply->name, mylist)){
     perror("LOGOUT_NOTIFY - remove player");
     exit(-1);

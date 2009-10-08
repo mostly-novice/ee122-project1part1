@@ -169,21 +169,38 @@ static inline int check_malformed_header(int version, int len, int msgtype){
 }
 
 static inline int check_malformed_stats(int x, int y, int hp, int exp){
-  if(x < 0 || x > 99){
-    on_malformed_message_from_server();
-  }
+  if(x < 0 || x > 99){ on_malformed_message_from_server(); }
+  if(y < 0 || y > 99){ on_malformed_message_from_server();}
+  if(hp < 1){on_malformed_message_from_server();}
+  if(exp < 0){on_malformed_message_from_server();}
+  return 0;
+}
 
-  if(x < 0 || x > 99){
-    on_malformed_message_from_server();
-  }
+static inline int check_malformed_move(char*name,int x, int y, int hp, int exp){
+  if (!check_player_name(name)) on_malformed_message_from_server();
+  if(x < 0 || x > 99){ on_malformed_message_from_server(); }
+  if(y < 0 || y > 99){ on_malformed_message_from_server();}
+  if(hp < 1){on_malformed_message_from_server();}
+  if(exp < 0){on_malformed_message_from_server();}
+  return 0;
+}
 
-  if(hp < 1){
-    on_malformed_message_from_server();
-  }
+static inline int check_malformed_attack(char*name1,char*name2,char damage, int updatedhp){ 
+  if (!check_player_name(name1)) on_malformed_message_from_server();
+  if (!check_player_name(name2)) on_malformed_message_from_server();
+  if (damage < 10 || damage > 20) on_malformed_message_from_server();
+  if (updatedhp < 0){ on_malformed_message_from_server(); }
+  return 0;
+}
 
-  if(exp < 0){
-    on_malformed_message_from_server();
-  }
+static inline int check_malformed_speak(char*name,char*msg){
+  if (!check_player_name(name)) on_malformed_message_from_server();
+  if (!check_player_message(msg)) on_malformed_message_from_server();
+  return 0;
+}
+
+static inline int check_malformed_logout(char*name){
+  if (!check_player_name(name)) on_malformed_message_from_server();
   return 0;
 }
 
