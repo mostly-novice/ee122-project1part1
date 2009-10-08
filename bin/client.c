@@ -415,8 +415,9 @@ int main(int argc, char* argv[]){
 
 	    if(hdr->msgtype == LOGIN_REPLY){ // LOGIN REPLY
 	      if(isLogin) on_malformed_message_from_server();
-	      process_login_reply(payload_c,self);
-	      isLogin = 1;
+	      if(process_login_reply(payload_c,self)==1){
+		isLogin = 1;
+	      }
 	    } else if(hdr->msgtype == MOVE_NOTIFY){
 	      process_move_notify(payload_c,self,mylist);
 	    } else if(hdr->msgtype == ATTACK_NOTIFY){

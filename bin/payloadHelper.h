@@ -6,7 +6,9 @@ int process_login_reply(char payload_c[],Player * self){
     self->exp = ntohl(lreply->exp);
     self->x = lreply->x;
     self->y = lreply->y;
+    return 1;
   }
+  return 0;
 }
 
 int process_move_notify(char payload_c[], Player * self, LinkedList * mylist){
