@@ -14,6 +14,10 @@
 #define STDIN 0
 #define HEADER_LENGTH 4
 
+// Flags
+#define HEADER 0
+#define PAYLOAD 1
+
 // Debugging variables
 int mc; // malloc counter
 int fc; // free counter
@@ -167,6 +171,8 @@ void printStat(){
   printf("\n");
 }
 
+#include "payloadHelper.h"
+
 int main(int argc, char* argv[]){
 
   // Model Variables
@@ -224,6 +230,13 @@ int main(int argc, char* argv[]){
   }
   show_prompt();
 
+  char * buffer;
+  int buffer_size = 0;
+  int flag = 0;
+  int desire_length = 4;
+  unsigned char header_c[HEADER_LENGTH];
+  struct header * hdr;
+
   while(1){
     // Clear the set readfds;
     FD_ZERO(&readfds);
@@ -258,7 +271,6 @@ int main(int argc, char* argv[]){
 
 	int status = handlelogin(name,sock);
 
-
       } else if(strcmp(command,"move") == 0){ // MOVE
 	char* direction = arg;
 	if (strcmp(arg,"")==0x40){
@@ -291,7 +303,6 @@ int main(int argc, char* argv[]){
 
 	// Search for the guy in the list
 	Node * vic = findPlayer(victimname,mylist);
-
 	if (!vic){ // If it is NULL
 	  on_not_visible();
 	  continue;
@@ -323,23 +334,20 @@ int main(int argc, char* argv[]){
 	}
 	if (handlelogout(self->name,sock) < 0){ perror("handlelogout");}
 	free(self);
-	fc++;
 	freePlayers(mylist); // Free every player in the list
 	free(mylist); // Free the list
-	fc++;
-	
 	show_prompt();
 	on_disconnection_from_server();	
 	break;
       } else if(strcmp(command,"whois") == 0){
 	printPlayers(mylist);
-
       } else if(strcmp(command,"whoami")==0){
-	stats(self);
+	if (isLogin)
+	  stats(self);
+	else printf("Not yet logged in.\n");
       } else {
 	printf("Available command: login, move, attack, speak, logout.\n");
       }
-
       show_prompt();
 
 
@@ -358,12 +366,12 @@ int main(int argc, char* argv[]){
 
     } else if (FD_ISSET(sock, &readfds)){ // Receiving from sock
       // Block and wait for response from the server
-      unsigned char buffer[4096];
-      int expected_data_len = sizeof(buffer);
-      unsigned char *p = (char*) buffer; // Introduce a new pointer
+      unsigned char read_buffer[4096];
+      int expected_data_len = sizeof(read_buffer);
+      unsigned char *p = (char*) read_buffer; // Introduce a new pointer
       int offset = 0;
 
-      int read_bytes = recv(sock,buffer,expected_data_len,0);
+      int read_bytes = recv(sock,read_buffer,expected_data_len,0);
       if (read_bytes == 0){ // Disconnected from the server
 	// Free memory
 	freePlayers(mylist);
@@ -371,173 +379,71 @@ int main(int argc, char* argv[]){
 	free(mylist);
 	on_disconnection_from_server();
 	break;
-      }
-      
-      if(read_bytes % 4 != 0){ // 32-bit aligned\
-	// Free memory
-	printf("! Message is not 32-bit aligned\n");
-	freePlayers(mylist);
-	free(self);
-	free(mylist);
-	on_malformed_message_from_server();
-      }
+      } else if (read_bytes < 0){
+	perror("recv failed");
+	return -1;
+      } else {
+	// Append the read_buffer to the buffer
+	buffer = realloc(buffer,buffer_size+read_bytes);
+	memcpy(buffer,read_buffer,read_bytes);
+	buffer_size += read_bytes;
 
-      int j;
-      
-      unsigned char header_c[HEADER_LENGTH];
-      while(offset < read_bytes){
-	for(j = 0; j < HEADER_LENGTH; j++){header_c[j] = *(p+offset+j);}
-	offset += HEADER_LENGTH;
+	while (buffer_size >= desire_length){
+	  if(flag == HEADER){
+	    // Copy the header
+	    int j;
+	    for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
 
-	// Cast it to struct header
-	struct header * hdr = (struct header *) header_c;
+	    hdr = (struct header *) header_c;
+	    check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
+	    desire_length = ntohs(hdr->len)-4;
+	    flag = PAYLOAD;
 
-	if (hdr->version != 0x4){ // Check for version number
-	  // Free memory
-	  freePlayers(mylist);
-	  free(self);
-	  free(mylist);
-	  on_malformed_message_from_server();
-	}
+	    // Move the pointers
+	    char * temp = (char*) malloc(sizeof(char)*(buffer_size-HEADER_LENGTH));
+	    memcpy(temp,buffer+4,buffer_size-4);
+	    free(buffer);
+	    buffer = temp;
+	    buffer_size -= 4;
 
-	int payload_len = ntohs(hdr->len)-HEADER_LENGTH;
+	  } else { // Payload
+	    // Move the pointers
+	    // Copy the payload
+	    char payload_c[desire_length];
+	    int j;
+	    for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
 
-	char payload_c[payload_len];
-
-	for(j = 0; j < payload_len; j++){
-	  payload_c[j] = *(p+offset+j);
-	}
-
-	offset += payload_len; // Increment the offset
-      
-	// @TODO: Check for the version
-
-	// Check for the msgtype
-	if(hdr->msgtype == LOGIN_REPLY){ // LOGIN REPLY
-
-	  struct login_reply * lreply = (struct login_reply *) payload_c;
-	  if(isLogin){
-
-	    // Treat it as a malformed package
-	    on_malformed_message_from_server();
-
-	  } else {
-
-	    on_login_reply(lreply->error_code);
-
-	    if(lreply->error_code == 0){
-	      self->hp = ntohl(lreply->hp);
-	      self->exp = ntohl(lreply->exp);
-	      self->x = lreply->x;
-	      self->y = lreply->y;
+	    if(hdr->msgtype == LOGIN_REPLY){ // LOGIN REPLY
+	      printf("Login_reply");
+	      if(isLogin) on_malformed_message_from_server();
+	      process_login_reply(payload_c,self);
 	      isLogin = 1;
-	    } else { //TODO
-	    }
-	  }
-	} else if(hdr->msgtype == MOVE_NOTIFY){
-	  struct move_notify * mn = (struct move_notify *) payload_c;
-	  Node *p;
+	    } else if(hdr->msgtype == MOVE_NOTIFY){
+	      process_move_notify(payload_c,self,mylist);
+	    } else if(hdr->msgtype == ATTACK_NOTIFY){
+	      process_attack_notify(payload_c,self,mylist);
+	    } else if(hdr->msgtype == SPEAK_NOTIFY){ // SPEAK_NOTIFY
+	      process_speak_notify(payload_c);
+	    } else if(hdr->msgtype == LOGOUT_NOTIFY){
+	      process_logout_notify(payload_c,mylist);
+	    } else if(hdr->msgtype == INVALID_STATE){
+	      process_invalid_state(payload_c);
+	    } // End of processing reply
 
-	  check_malformed_stats(mn->x,mn->y,ntohl(mn->hp),ntohl(mn->exp));
+	    // Move the pointers
+	    char * temp = (char*) malloc(sizeof(char)*(buffer_size-desire_length));
+	    memcpy(temp,buffer+desire_length,buffer_size-desire_length);
+	    free(buffer);
+	    buffer = temp;
+	    buffer_size -= desire_length;
 
-	  if (strcmp(mn->name,self->name)==0){ // If the guy is self
-	    self->hp = ntohl(mn->hp);
-	    self->exp = ntohl(mn->exp);
-	    self->x = mn->x;
-	    self->y = mn->y;
-	    on_move_notify(self->name, self->x, self->y, self->hp,self->exp);
-	  } else { // The guy is someone else
-	    p = findPlayer(mn->name,mylist);
-	    if(p == NULL){ // Not in the list
-	      Node * node = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
-	      Player * newplayer = (Player*) malloc(sizeof(Player)); // TODO: remember to free this first
-	      initialize(newplayer,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
-	      node->datum = newplayer;
-	      node->next = NULL;
-	      if(mylist->tail == NULL && mylist->head == NULL){ // First player
-		mylist->tail = node;
-		mylist->head = node;
-	      } else {
-		mylist->tail->next = node;
-		mylist->tail = node;
-	      }
-	    } else { // The guy is in the list
-            int oldv = isVisible(self->x,self->y,p->datum->x,p->datum->y);
-            int newv = isVisible(self->x,self->y,mn->x,mn->y);
-            initialize(p->datum,mn->name,ntohl(mn->hp),ntohl(mn->exp),mn->x,mn->y);
-
-            if(oldv || newv){
-                on_move_notify(p->datum->name,p->datum->x,p->datum->y,p->datum->hp,p->datum->exp);
-            }
-
-
-            checkSelfVision(self->x,self->y,mylist);
-
-
-        } else if(hdr->msgtype == ATTACK_NOTIFY){
-            struct attack_notify * an = (struct attack_notify *)payload_c;
-            Player * att;
-            Player * vic;
-
-            if (strcmp(an->attacker_name,self->name)==0){
-                att = self;
-            } else {
-                Node * att_node = findPlayer(an->attacker_name,mylist);
-                att = att_node->datum;
-            }
-
-	  if (strcmp(an->victim_name,self->name)==0){
-	    vic = self;
-	  } else {
-	    Node * vic_node = findPlayer(an->victim_name,mylist);
-	    vic = vic_node->datum;
-	  }
-
-	  int updated_hp = ntohl(an->hp);
-	  char damage = an->damage;
-
-	  // Check the visibility
-	  int attVisible = isVisible(self->x,self->y,att->x,att->y);
-	  int vicVisible = isVisible(self->x,self->y,vic->x,vic->y);
-
-	  if (attVisible && vicVisible){
-	    on_attack_notify(att->name,vic->name,damage,updated_hp);
-	  }
-	  
-
-	} else if(hdr->msgtype == SPEAK_NOTIFY){ // SPEAK_NOTIFY
-	  struct speak_notify* sreply = (struct speak_notify*) payload_c;
-	  unsigned char * broadcaster = sreply->broadcaster;
-
-	  char * start = ((char*)payload_c)+10;
-
-	  // null terminated & no longer than 255
-	  if(!check_player_message(start)){ printf("! Invalid format\n"); continue;}		
-	  printf("%s: %s\n",broadcaster,start);
-	  show_prompt();
-
-
-	} else if(hdr->msgtype == LOGOUT_NOTIFY){
-	  // Take the the player out of the database
-
-	  struct logout_reply * loreply = (struct logout_reply *) payload_c;
-	  if (!removePlayer(loreply->name, mylist)){
-	    perror("LOGOUT_NOTIFY - remove player");
-	    exit(-1);
-	  }
-	  
-	  printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
-	  show_prompt();
-
-
-	} else if(hdr->msgtype == INVALID_STATE){
-
-	  struct invalid_state * is = (struct invalid_state *) payload_c;
-	  on_invalid_state(is->error_code);
-
-	} // end of else if for hdr->msgtype
-
+	    desire_length = HEADER_LENGTH;
+	    flag = HEADER;
+	  } // end of handling payload
+	} // End of while
       }
+      
     }
   }
 }
+
