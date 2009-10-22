@@ -59,5 +59,10 @@ def handleAttack(attacker,victim):
 def handleSpeak(player,message):
     broadcast(SPEAK_NOTIFY,name,message);
 
+def handleLogout(player);
+	store data for player
+	disconnect player
+	broadcast logout_notify
+
 handleLoginReply
 Form the packets and send them
