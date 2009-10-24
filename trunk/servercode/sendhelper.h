@@ -43,6 +43,11 @@ int sendmovenotify(unsigned char* name,unsigned int hp, unsigned int exp, unsign
   hdr->msgtype = 0x4;
 
   strcpy(payload->name,name);
+  payload->hp = hp;
+  payload->exp = exp;
+  payload->x = x;
+  payload->y = y;
+
   unsigned char * payload_c = (unsigned char*) payload;	// flatten payload struct
   unsigned char * header_c = (unsigned char *) hdr;	// flatten header struct
   unsigned char tosent[24];
@@ -65,7 +70,7 @@ int sendattacknotify(unsigned char* attacker_name, unsigned char* victim_name, u
   int j;
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct attack_notify * payload = (struct attack_notify *) malloc(sizeof(char)*30); // remember to free this
+  struct attack_notify * payload = (struct attack_notify *) malloc(sizeof(int)*7); // remember to free this
   hdr->version = 0x04;
   hdr->len = htons(0x0020);
   hdr->msgtype = 0x6;
@@ -85,7 +90,7 @@ int sendattacknotify(unsigned char* attacker_name, unsigned char* victim_name, u
   }
 
   // Send a login message to the server
-  int bytes_sent = send(sock, tosent,16,0);
+  int bytes_sent = send(sock, tosent,32,0);
   if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
@@ -99,7 +104,7 @@ int sendspeaknotify(unsigned char* broadcaster, char* m){
   unsigned int payloadLength;
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct speak_notify * payload = (struct speak_notify *) malloc (sizeof(char)*10); // remember to free this
+  struct speak_notify * payload = (struct speak_notify *) malloc (sizeof(int)*4); // remember to free this
 
   if((strlen(m)+1)%4 != 0)
 	payloadLength = strlen(m) + 1 + 4 - ((strlen(m)+1)%4);
@@ -107,7 +112,8 @@ int sendspeaknotify(unsigned char* broadcaster, char* m){
 	payloadLength = strlen(m) + 1 + 4;
 			  
   
-  unsigned int totalMessageLength = payloadLength + 4 + sizeof(char)*10;
+  // *** IS THIS CORRECT?? ** //
+  unsigned int totalMessageLength = payloadLength + 4 + sizeof(int)*4;
   strcpy(payload->broadcaster,broadcaster);
 
   hdr->version = 0x04;
@@ -163,24 +169,24 @@ int sendinvalidstate(unsigned char error_code){
   int j;
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct invalid_state * payload = (struct invalid_state *) malloc(sizeof(char)); // remember to free this
+  struct invalid_state * payload = (struct invalid_state *) malloc(sizeof(int)); // remember to free this
   hdr->version = 0x04;
-  hdr->len = htons(0x0005);
+  hdr->len = htons(0x0008);
   hdr->msgtype = 0x1;
 
   payload->error_code = error_code;
 
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
-  unsigned char tosent[5];
+  unsigned char tosent[8];
 
-  for(j = 0; j < 5; j++){
+  for(j = 0; j < 8; j++){
     if(j<4) tosent[j] = header_c[j];
     else tosent[j] = payload_c[j-4];
   }
 
   // Send a login message to the server
-  int bytes_sent = send(sock, tosent,5,0);
+  int bytes_sent = send(sock, tosent,8,0);
   if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
