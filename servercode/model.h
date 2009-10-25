@@ -20,6 +20,10 @@ typedef struct ll{
   Node * tail;
 } LinkedList;
 
+
+// globals
+int fc=0;
+
 void stats(Player * p){
   fprintf(stdout, "%s: location=(%u,%u), HP=%u, EXP=%u\n",
           p->name, p->x, p->y, p->hp, p->exp);

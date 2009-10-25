@@ -145,7 +145,7 @@ unsigned char * sendlogoutnotify(unsigned char* name){
   int j;
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct logout_notify * payload = (struct logout_notify *) malloc(sizeof(int)*3); // remember to free this
+  struct logout_reply * payload = (struct logout_reply *) malloc(sizeof(int)*3); // remember to free this
   hdr->version = 0x04;
   hdr->len = htons(0x0010);
   hdr->msgtype = 0xoa;
@@ -204,6 +204,6 @@ int broadcast(int socklist[], int socklen, unsigned char * tosent,int expected){
  * expected: is the size you expected
  */
 int unicast(int sock, unsigned char * tosent, int expected){
-  int bytes_sent = send(sock, tosent,,0);
+  int bytes_sent = send(sock, tosent,expected,0);
   if (bytes_sent < 0) perror("send failed");
 }

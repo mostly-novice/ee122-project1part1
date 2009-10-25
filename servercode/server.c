@@ -11,6 +11,8 @@
 
 #include "header.h"
 #include "messages.h"
+#include "payloadHelper.h"
+#include "processHelper.h"
 
 #define STDIN 0
 #define HEADER_LENGTH 4
@@ -209,13 +211,11 @@ int main(int argc, char* argv[]){
 
 		char payload_c[desire_length];
 		int j;
-		//printf("Processing payload\n");
-		//for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
+		printf("Processing payload\n");
+		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
 
-		//printf("hdr->msgtype:%d", hdr->msgtype==LOGIN_REQUEST);
+		printf("hdr->msgtype:%d", hdr->msgtype==LOGIN_REQUEST);
 
-		// Processing the payload
-		//printf("Processing payload\n");
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
 		  printf("We got a login request\n");
 		  //processloginrequest();
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]){
 		} else if(hdr->msgtype == SPEAK){ // SPEAK
 		  printf("We got a speak");
 		} else if(hdr->msgtype == LOGOUT){ 
-		  printf("We got a logout");
+		  printf("We got a logout");		  
 		} else {
 		  printf("We got nothing");
 		}
