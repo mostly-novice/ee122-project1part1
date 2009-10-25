@@ -9,13 +9,17 @@
 #define SPEAK_NOTIFY_SIZE 32
 #define LOGOUT_NOTIFY_SIZE 32
 #define INVALID_STATE_SIZE 32
+
 int process_login_request(int sock[], int length, char payload_c[],char * name, LinkedList * activeList){
+  printf("processing the login request.\n");
   if(findPlayer(name,activeList)){ // if the guy is already logged in
+    printf("guy already logged in!!!\n");
     sendinvalidstate(INVALID_STATE); // Send invalid state
   }else {
     // make a new instance of Player
     Player * newplayer = (Player *) malloc(sizeof(Player));
 
+    printf("making directory and changing to that directory\n");
     mkdir(DIR);
     chdir(DIR);
 

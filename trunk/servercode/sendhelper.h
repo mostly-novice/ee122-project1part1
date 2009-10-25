@@ -148,7 +148,7 @@ unsigned char * sendlogoutnotify(unsigned char* name){
   struct logout_reply * payload = (struct logout_reply *) malloc(sizeof(int)*3); // remember to free this
   hdr->version = 0x04;
   hdr->len = htons(0x0010);
-  hdr->msgtype = 0xoa;
+  hdr->msgtype = 0x0a;
   strcpy(payload->name,name);
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
