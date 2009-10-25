@@ -1,5 +1,8 @@
 // Helper to send messages.
-int sendloginreply(unsigned char error_code,unsigned int hp, unsigned int exp, unsigned char x, unsigned y){
+unsigned char * createloginreply(int sock[], unsigned char error_code,
+				 unsigned int hp, unsigned int exp,
+				 unsigned char x,
+				 unsigned y){
   int i = 0;
   int j;
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
@@ -25,14 +28,16 @@ int sendloginreply(unsigned char error_code,unsigned int hp, unsigned int exp, u
   }
 
   // Send a login message to the server
-  int bytes_sent = send(sock, tosent,12,0);
-  if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
-  return 0;
+  return tosent;
 }
 
-int sendmovenotify(unsigned char* name,unsigned int hp, unsigned int exp, unsigned char x, unsigned y){
+unsigned char * createmovenotify(unsigned char* name,
+				 unsigned int hp,
+				 unsigned int exp,
+				 unsigned char x,
+				 unsigned char y){
   int i = 0;
   int j;
   // Header
@@ -58,14 +63,15 @@ int sendmovenotify(unsigned char* name,unsigned int hp, unsigned int exp, unsign
   }
 
   // Send move notify message to client
-  int bytes_sent = send(sock, tosent,24,0);
-  if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
-  return 0;
+  return tosent;
 }
 
-int sendattacknotify(unsigned char* attacker_name, unsigned char* victim_name, unsigned int hp, unsigned int damage){
+unsigned char * createattacknotify(unsigned char* attacker_name,
+				   unsigned char* victim_name,
+				   unsigned int hp,
+				   unsigned int damage){
   int i = 0;
   int j;
   // Header
@@ -90,15 +96,14 @@ int sendattacknotify(unsigned char* attacker_name, unsigned char* victim_name, u
   }
 
   // Send a login message to the server
-  int bytes_sent = send(sock, tosent,32,0);
-  if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
-  return 0;
+  return tosent;
 }
 
 
-int sendspeaknotify(unsigned char* broadcaster, char* m){
+unsigned char * createspeaknotify(unsigned char* broadcaster,
+				  char* m){
   int i = 0;
   int j;
   unsigned int payloadLength;
@@ -131,13 +136,11 @@ int sendspeaknotify(unsigned char* broadcaster, char* m){
   }
 
   // Send a login message to the server
-  int bytes_sent = send(sock, tosent,totalMessageLength,0);
-  if (bytes_sent < 0) perror("send failed");
   free(hdr);
-  return 0;
+  return tosent;
 }
 
-int sendlogoutnotify(unsigned char* name){
+unsigned char * sendlogoutnotify(unsigned char* name){
   int i = 0;
   int j;
   // Header
@@ -156,15 +159,12 @@ int sendlogoutnotify(unsigned char* name){
     else tosent[j] = payload_c[j-4];
   }
 
-  // Send a login message to the server
-  int bytes_sent = send(sock, tosent,16,0);
-  if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
-  return 0;
+  return tosent;
 }
 
-int sendinvalidstate(unsigned char error_code){
+unsigned char * sendinvalidstate(unsigned char error_code){
   int i = 0;
   int j;
   // Header
@@ -185,10 +185,25 @@ int sendinvalidstate(unsigned char error_code){
     else tosent[j] = payload_c[j-4];
   }
 
-  // Send a login message to the server
-  int bytes_sent = send(sock, tosent,8,0);
-  if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
-  return 0;
+  return tosent;
+}
+
+int broadcast(int socklist[], int socklen, unsigned char * tosent,int expected){
+  int i;
+  for(i=0; i<socklen;i++){
+    int bytes_sent = send(socklist[i], tosent,expected,0);
+    if (bytes_sent < 0) perror("send failed");
+  }
+}
+
+/*
+ * sock is the socket you want to send to
+ * tosent is the packet you want to send
+ * expected: is the size you expected
+ */
+int unicast(int sock, unsigned char * tosent, int expected){
+  int bytes_sent = send(sock, tosent,,0);
+  if (bytes_sent < 0) perror("send failed");
 }
