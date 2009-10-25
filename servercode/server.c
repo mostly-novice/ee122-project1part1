@@ -26,12 +26,21 @@ int mc; // malloc counter
 int fc; // free counter
 
 #include "model.h"
+//#include "processHelper.h"
 
 // Printing out the relevant statistics
 void printStat(){
   printf("\n");
   printf("Number of mallocs:%d\n",mc);
   printf("Number of frees:%d\n",fc);
+  printf("\n");
+}
+
+void printMessage(char * message, int len){
+  int i;
+  for(i = 0; i < len; i++){
+    printf("%02x ", *(message+i));
+  }
   printf("\n");
 }
 
@@ -74,6 +83,10 @@ int main(int argc, char* argv[]){
 
   myport = atoi(argv[2]);
 
+  if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){
+      perror('setvbuf');
+  }
+
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if(sock < 0){
     perror("socket() failed\n");
@@ -112,12 +125,10 @@ int main(int argc, char* argv[]){
   printf("server: waiting for connections...\n");
   while(1){ // main accept() log
     readfds = master; // copy it
-    printf("Before select\n");
     if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
       exit(-1);
     }
-    printf("Out of select\n");
 
     // run through the existing connections looking for data to read
     int i;
@@ -127,16 +138,16 @@ int main(int argc, char* argv[]){
 	  printf("Received a new connection\n");
 	  // handle new connection
 	  int addr_len = sizeof(client_sin);
-	  int newfd = accept(sock,(struct sockaddr*) &client_sin,addr_len);
+	  int newfd = accept(sock,(struct sockaddr*) &client_sin,&addr_len);
 	  if (newfd < 0){
 	    perror("accept failed");
 	  } else {
 	    FD_SET(newfd,&master);
 	    if (newfd > fdmax) fdmax = newfd;
-	    printf("New connection n socket %d\n", newfd);
+	    printf("New connection in socket %d\n", newfd);
 	  }
-	} else {
-
+	} else { // If someone has data
+	  printf("Handle data from client\n");
 
 	  unsigned char read_buffer[4096];
 	  int expected_data_len = sizeof(read_buffer);
@@ -151,6 +162,8 @@ int main(int argc, char* argv[]){
 	  struct header * hdr;
 
 	  int read_bytes = recv(i,read_buffer,expected_data_len, 0);
+
+	  printf("ready_byte:%d\n",read_bytes);
   
 	  // handle data from a client
 	  if (read_bytes <= 0){
@@ -164,7 +177,6 @@ int main(int argc, char* argv[]){
 	    close(i); // bye!
 	    FD_CLR(i,&master); // remove from the master set
 	  } else {
-
 	    // we got some data from a client
 	    // Handling incoming data
 	    buffer = realloc(buffer,buffer_size+read_bytes);
@@ -173,11 +185,17 @@ int main(int argc, char* argv[]){
 	    
 	    while (buffer_size >= desire_length){
 	      if(flag == HEADER){
+		printf("Processing header\n");
 		// Copy the header
 		int j;
 		for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
+
 		hdr = (struct header *) header_c;
+		printf("Got the header\n");
+		printMessage(read_buffer,16);
+
 		check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
+
 		// Move the pointers
 		char * temp = (char*) malloc(sizeof(char)*(buffer_size-HEADER_LENGTH));
 		memcpy(temp,buffer+4,buffer_size-4);
@@ -191,15 +209,26 @@ int main(int argc, char* argv[]){
 
 		char payload_c[desire_length];
 		int j;
-		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
+		//printf("Processing payload\n");
+		//for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
+
+		//printf("hdr->msgtype:%d", hdr->msgtype==LOGIN_REQUEST);
 
 		// Processing the payload
+		//printf("Processing payload\n");
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
-		  printf("We got a login request");
+		  printf("We got a login request\n");
+		  //processloginrequest();
 		} else if(hdr->msgtype == MOVE){ // MOVE
+		  printf("We got a move\n");
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
+		  printf("We got an attack");
 		} else if(hdr->msgtype == SPEAK){ // SPEAK
+		  printf("We got a speak");
 		} else if(hdr->msgtype == LOGOUT){ 
+		  printf("We got a logout");
+		} else {
+		  printf("We got nothing");
 		}
 		//else if(hdr->msgtype == INVALID_STATE){
 		//} // End of processing reply
