@@ -137,5 +137,13 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
 }
 
 void addPlayer(Player * newplayer, LinkedList * list){
-  // TODO: Implement
+	if(list->head == NULL)	// This is the first player
+	{
+		list->head = list->tail = newplayer;
+
+	}else
+	{
+		list->tail->next = newplayer;
+		list->tail = newplayer;
+	}
 }
