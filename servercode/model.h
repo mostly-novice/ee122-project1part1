@@ -135,3 +135,7 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   object->x = x;
   object->y = y;
 }
+
+void addPlayer(Player * newplayer, LinkedList * list){
+  // TODO: Implement
+}
