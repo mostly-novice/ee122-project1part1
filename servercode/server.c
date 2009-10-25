@@ -13,6 +13,7 @@
 #include "messages.h"
 #include "payloadHelper.h"
 #include "processHelper.h"
+#include "model.h"
 
 #define STDIN 0
 #define HEADER_LENGTH 4
@@ -27,7 +28,7 @@
 int mc; // malloc counter
 int fc; // free counter
 
-#include "model.h"
+//#include "model.h"
 //#include "processHelper.h"
 
 // Printing out the relevant statistics
@@ -213,12 +214,10 @@ int main(int argc, char* argv[]){
 		int j;
 		printf("Processing payload\n");
 		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
-
 		printf("hdr->msgtype:%d", hdr->msgtype==LOGIN_REQUEST);
-
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
 		  printf("We got a login request\n");
-		  //processloginrequest();
+		  process_login_request(sock,desire_length,payload_c,payload_c,mylist);
 		} else if(hdr->msgtype == MOVE){ // MOVE
 		  printf("We got a move\n");
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
