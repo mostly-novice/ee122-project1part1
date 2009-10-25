@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "model.h"
+#include "constants.h"
+#include "messages.h"
+
 int process_login_reply(char payload_c[],Player * self){
   struct login_reply * lreply = (struct login_reply *) payload_c;
   check_malformed_stats(lreply->x,lreply->x,ntohl(lreply->hp),ntohl(lreply->exp));
@@ -91,7 +97,6 @@ int process_speak_notify(char payload_c[]){
   show_prompt();
   return 1;
 }
-
 int process_logout_notify(char payload_c[], LinkedList * mylist){
   struct logout_reply * loreply = (struct logout_reply *) payload_c;
   check_malformed_logout(loreply->name);
