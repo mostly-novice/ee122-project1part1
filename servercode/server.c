@@ -10,9 +10,7 @@
 #include <unistd.h>
 
 #include "header.h"
-#include "helper.h"
 #include "messages.h"
-#include "aux.h"
 
 #define STDIN 0
 #define HEADER_LENGTH 4
@@ -20,6 +18,8 @@
 // Flags
 #define HEADER 0
 #define PAYLOAD 1
+
+#define MAX_CONNECTION 20
 
 // Debugging variables
 int mc; // malloc counter
@@ -35,16 +35,16 @@ void printStat(){
   printf("\n");
 }
 
-#include "payloadHelper.h"
+//#include "processHelper"
 
 int main(int argc, char* argv[]){
 
   // Model Variables
-  mc++; // Debugging memory leak
   LinkedList * mylist = (LinkedList *) malloc (sizeof(LinkedList));
-  mc++;
   mylist->head = NULL;
   mylist->tail = NULL;
+  struct sockaddr_in client_sin;
+
   Node * p;
   int isLogin = 0;
   char command[80];
@@ -59,142 +59,166 @@ int main(int argc, char* argv[]){
 
   // Select
   fd_set readfds;
-  fd_set writefds;
+  fd_set master; // master fd
+  int fdmax;
 
   struct sockaddr_in sin;
   memset(&sin, 0, sizeof(sin));
 
-
-  if(argc != 2){ printf("Usage: ./server -p <server port>");}
+  printf("%d\n",argc);
+  if(argc != 3){ printf("Usage: ./server -p <server port>");  exit(0);}
 
   // Initilizations
   int c;
   char* pvalue=NULL;
 
-  while( (c=getopt( argc,argv,"p:"))!=-1){
-    switch(c){
-    case 'p':
-      pvalue=optarg;
-      break;
-    default:
-      printf("Usage: ./server -p <server port>");
-      return 0;
-    }
-  }
-  myort = atoi(pvalue);
+  myport = atoi(argv[2]);
 
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if(sock < 0){
     perror("socket() failed\n");
-    abort();
+    exit(0);
+  } else {
+    printf("Listenning sock is ready. Sock: %d\n",sock);
   }
 
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = inet_addr(serverIP);
-  sin.sin_port = htons(serverPort);
+  sin.sin_addr.s_addr = INADDR_ANY;
+  sin.sin_port = htons(myport);
 
-  if(connect(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){
-    perror("client - connect");
-    freePlayers(mylist);
-    free(mylist);
-
-    close(sock);
-    on_client_connect_failure();
-    abort();
+  int optval = 1;
+  if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
+    perror("Reuse failed");
+    exit(0); // TODO: check if this is the appropriate behavior.
   }
-  show_prompt();
 
-  char * buffer;
-  int buffer_size = 0;
-  int flag = 0;
-  int desire_length = 4;
-  unsigned char header_c[HEADER_LENGTH];
-  struct header * hdr;
+  if (bind(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){
+    perror("Bind failed");
+    exit(-1);
+  }
 
-  while(1){
-    // Clear the set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(STDIN, &readfds);
-    FD_SET(sock, &readfds);
-      
-    if (select(sock+1,&readfds,NULL,NULL,NULL) == -1){
+  if (listen(sock,MAX_CONNECTION)){
+    perror("listen");
+    exit(1);
+  }
+
+  FD_ZERO(&master);
+  FD_ZERO(&readfds);
+
+  FD_SET(sock,&master);
+
+  fdmax = sock;
+
+  printf("server: waiting for connections...\n");
+  while(1){ // main accept() log
+    readfds = master; // copy it
+    printf("Before select\n");
+    if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
-      return 0;
+      exit(-1);
     }
-    
-    if (FD_ISSET(sock, &readfds)){ // Receiving from sock
-      // Block and wait for response from the server
-      unsigned char read_buffer[4096];
-      int expected_data_len = sizeof(read_buffer);
-      unsigned char *p = (char*) read_buffer; // Introduce a new pointer
-      int offset = 0;
+    printf("Out of select\n");
 
-      int read_bytes = recv(sock,read_buffer,expected_data_len,0);
-      if (read_bytes == 0){ // Disconnected from the server
-	// Free memory
-	freePlayers(mylist);
-	free(mylist);
-	on_disconnection_from_server();
-	break;
-      } else if (read_bytes < 0){
-	perror("recv failed");
-	return -1;
-      } else {
-	// Append the read_buffer to the buffer
-	buffer = realloc(buffer,buffer_size+read_bytes);
-	memcpy(buffer,read_buffer,read_bytes);
-	buffer_size += read_bytes;
+    // run through the existing connections looking for data to read
+    int i;
+    for(i=0; i<= fdmax; i++){
+      if (FD_ISSET(i,&readfds)){
+	if (i==sock){ // NEW CONNECTION COMING IN
+	  printf("Received a new connection\n");
+	  // handle new connection
+	  int addr_len = sizeof(client_sin);
+	  int newfd = accept(sock,(struct sockaddr*) &client_sin,addr_len);
+	  if (newfd < 0){
+	    perror("accept failed");
+	  } else {
+	    FD_SET(newfd,&master);
+	    if (newfd > fdmax) fdmax = newfd;
+	    printf("New connection n socket %d\n", newfd);
+	  }
+	} else {
 
-	while (buffer_size >= desire_length){
-	  if(flag == HEADER){
-	    // Copy the header
-	    int j;
-	    for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
 
-	    hdr = (struct header *) header_c;
-	    check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
+	  unsigned char read_buffer[4096];
+	  int expected_data_len = sizeof(read_buffer);
+	  unsigned char *p = (char*) read_buffer; // Introduce a new pointer
+	  int offset = 0;
 
-	    // Move the pointers
-	    char * temp = (char*) malloc(sizeof(char)*(buffer_size-HEADER_LENGTH));
-	    memcpy(temp,buffer+4,buffer_size-4);
-	    free(buffer);
+	  char * buffer;
+	  int buffer_size = 0;
+	  int flag = 0;
+	  int desire_length = 4;
+	  unsigned char header_c[HEADER_LENGTH];
+	  struct header * hdr;
 
-	    buffer = temp;
-	    buffer_size -= 4;
-	    desire_length = ntohs(hdr->len)-4;
-	    flag = PAYLOAD;
-
-	  } else { // Payload
-	    // Move the pointers
-	    // Copy the payload
-	    char payload_c[desire_length];
-	    int j;
-	    for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
-
-	    // Processing the payload
-	    if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
-	    } else if(hdr->msgtype == MOVE){ // MOVE
-	    } else if(hdr->msgtype == ATTACK){ // ATTACK
-	    } else if(hdr->msgtype == SPEAK){ // SPEAK
-	    } else if(hdr->msgtype == LOGOUT){ 
+	  int read_bytes = recv(i,read_buffer,expected_data_len, 0);
+  
+	  // handle data from a client
+	  if (read_bytes <= 0){
+	    // got error or connection closed by client
+	    if(read_bytes == 0){
+	      // Connection closed
+	      printf("Socket %d hung up\n",i);
+	    } else {
+	      perror("recv");
 	    }
+	    close(i); // bye!
+	    FD_CLR(i,&master); // remove from the master set
+	  } else {
 
-	    //else if(hdr->msgtype == INVALID_STATE){
-	    //} // End of processing reply
+	    // we got some data from a client
+	    // Handling incoming data
+	    buffer = realloc(buffer,buffer_size+read_bytes);
+	    memcpy(buffer,read_buffer,read_bytes);
+	    buffer_size += read_bytes;
+	    
+	    while (buffer_size >= desire_length){
+	      if(flag == HEADER){
+		// Copy the header
+		int j;
+		for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
+		hdr = (struct header *) header_c;
+		check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
+		// Move the pointers
+		char * temp = (char*) malloc(sizeof(char)*(buffer_size-HEADER_LENGTH));
+		memcpy(temp,buffer+4,buffer_size-4);
+		free(buffer);
+		buffer = temp;
+		buffer_size -= 4;
+		desire_length = ntohs(hdr->len)-4;
+		flag = PAYLOAD;
 
-	    // Move the pointers
-	    char * temp = (char*) malloc(sizeof(char)*(buffer_size-desire_length));
-	    memcpy(temp,buffer+desire_length,buffer_size-desire_length);
-	    free(buffer);
-	    buffer = temp;
-	    buffer_size -= desire_length;
+	      } else { // Payload
 
-	    desire_length = HEADER_LENGTH;
-	    flag = HEADER;
-	  } // end of handling payload
-	} // End of while
+		char payload_c[desire_length];
+		int j;
+		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
+
+		// Processing the payload
+		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
+		  printf("We got a login request");
+		} else if(hdr->msgtype == MOVE){ // MOVE
+		} else if(hdr->msgtype == ATTACK){ // ATTACK
+		} else if(hdr->msgtype == SPEAK){ // SPEAK
+		} else if(hdr->msgtype == LOGOUT){ 
+		}
+		//else if(hdr->msgtype == INVALID_STATE){
+		//} // End of processing reply
+
+		// Move the pointers
+		char * temp = (char*) malloc(sizeof(char)*(buffer_size-desire_length));
+		memcpy(temp,buffer+desire_length,buffer_size-desire_length);
+
+		free(buffer);
+		buffer = temp;
+		buffer_size -= desire_length;
+
+		desire_length = HEADER_LENGTH;
+		flag = HEADER;
+	      } // end of handling payload
+	    } // End of while
+	  }
+	}
       }
-      
     }
   }
 }
