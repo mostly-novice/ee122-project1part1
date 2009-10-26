@@ -181,3 +181,15 @@ int process_logout(int listener,
 
 int process_invalid_state(char payload_c[]){
 }
+
+int updateHP(LinkedList * mylist){
+   if(mylist->head == NULL){
+       return 0; // nothing updated
+   }
+   Player * i;
+   for(i=mylist->head->datum; i!=NULL;i=i->next->datum){
+       printf("updating %s's hp\n",i->name);
+       i->hp = i->hp + 1;
+   }
+
+}
