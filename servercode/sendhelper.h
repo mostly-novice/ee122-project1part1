@@ -38,6 +38,7 @@ unsigned char * createmovenotify(unsigned char* name,
 				 unsigned int exp,
 				 unsigned char x,
 				 unsigned char y){
+  printf("Creating move notify\n");
   int i = 0;
   int j;
   // Header
@@ -191,6 +192,7 @@ unsigned char * sendinvalidstate(unsigned char error_code){
 }
 
 int broadcast(int socklist[], int socklen, unsigned char * tosent,int expected){
+  printf("Broadcasting\n");
   int i;
   for(i=0; i<socklen;i++){
     int bytes_sent = send(socklist[i], tosent,expected,0);
@@ -204,6 +206,14 @@ int broadcast(int socklist[], int socklen, unsigned char * tosent,int expected){
  * expected: is the size you expected
  */
 int unicast(int sock, unsigned char * tosent, int expected){
+  printf("Unicast to sock:%d\n", sock);
+  printf("Expected:%d\n", expected);
+  printMessage(tosent,16);
   int bytes_sent = send(sock, tosent,expected,0);
-  if (bytes_sent < 0) perror("send failed");
+  if (bytes_sent < 0){
+    perror("send failed");
+    abort();
+  } else {
+    printf("Success");
+  }
 }

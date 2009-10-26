@@ -33,14 +33,13 @@ int process_login_request(int sock[], int length, unsigned char * n, LinkedList 
 	newplayer->x = x;
 	newplayer->y = y;
 
-	mkdir(DIR);
-	chdir(DIR);
+	//mkdir(DIR);
+	//chdir(DIR);
 
 
 	//check if the file with that name exists
 	printf("opeing a file for reading\n");
 	FILE * file = fopen(name,"r");
-	printf("value of file: %d\n",file);
 	printf("value of xp: %d\n",newplayer->hp);
 	printf("value of exp: %d\n",newplayer->exp);
 	printf("value of x: %d\n",newplayer->x);
@@ -49,29 +48,32 @@ int process_login_request(int sock[], int length, unsigned char * n, LinkedList 
 
 
 	if(file){ // if file exists
-	    printf("writing to file now\n");
 	    fscanf(file,"%d%d%d%d",&(newplayer->hp),&(newplayer->exp),&(newplayer->x),&(newplayer->y));
 	} else {
-	    
-	    if(file = fopen(name,"w+") == NULL)	// open a new file with overwrite
-		perror("file open");
-	    else
-		printf("Success: file exists\n");
+	  
+	  FILE * file2 = fopen(name,"w+");
+	  if(file2 == NULL)	// open a new file with overwrite
+	    perror("file open");
+	  
+	  
+	  srand(time(NULL));
 
-
-	    srand(time(NULL));
-
-	    // Initialize the player and add him to the list
-	    initialize(newplayer,name,hp,exp,x,y);
-	    addPlayer(newplayer,activeList);
-
-	    // Write to file
-	    fprintf(file,"%d %d %d %d",newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
+	  // Initialize the player and add him to the list
+	  initialize(newplayer,name,hp,exp,x,y);
+	  addPlayer(newplayer,activeList);
+	  
+	  // Write to file
+	  fprintf(file2,"aheuwadgauw");
 	} 
 
-	printf("hello world\n");
-	unsigned char * lrtosent = createloginreply(sock,0,newplayer->hp,newplayer->exp,newplayer->x,newplayer->y); // added field sock
+	unsigned char * lrtosent = createloginreply(sock,
+						    0,
+						    newplayer->hp,
+						    newplayer->exp,
+						    newplayer->x,
+						    newplayer->y); // added field sock
 	unicast(sock,lrtosent,LOGIN_REPLY_SIZE);
+	printf("Done sending\n");
 	unsigned char * mntosent = createmovenotify(name,newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
 	broadcast(sock,sizeof(sock),mntosent,MOVE_NOTIFY_SIZE); // changed socklist to sock
     }
