@@ -55,6 +55,8 @@ def handleAttack(attacker,victim):
         victim.hp = random(30-50);
         vicctim.x = random(0,99);
         victim.y = random(0,99);
+
+    broadcast MOVE_NOTIFY
     
 def handleSpeak(player,message):
     broadcast(SPEAK_NOTIFY,name,message);

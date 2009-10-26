@@ -45,6 +45,14 @@ void printStat(){
   printf("\n");
 }
 
+char* getName(int fd,char*map[]){
+  return map[fd];
+}
+
+void putName(int fd, char * name, char*map[]){
+  map[fd] = name;
+}
+
 
 int main(int argc, char* argv[]){
 
@@ -54,6 +62,7 @@ int main(int argc, char* argv[]){
   mylist->tail = NULL;
   struct sockaddr_in client_sin;
 
+  char*map[20];
   Node * p;
   int isLogin = 0;
   char command[80];
@@ -70,6 +79,8 @@ int main(int argc, char* argv[]){
   fd_set readfds;
   fd_set master; // master fd
   int fdmax;
+  
+  char * fdnamemap[20];
 
   struct sockaddr_in sin;
   memset(&sin, 0, sizeof(sin));
@@ -162,8 +173,6 @@ int main(int argc, char* argv[]){
 	  struct header * hdr;
 
 	  int read_bytes = recv(i,read_buffer,expected_data_len, 0);
-  
-	  // handle data from a client
 	  if (read_bytes <= 0){
 	    // got error or connection closed by client
 	    if(read_bytes == 0){
@@ -204,28 +213,18 @@ int main(int argc, char* argv[]){
 		flag = PAYLOAD;
 
 	      } else { // Payload
-
 		char payload_c[desire_length];
 		int j;
-		printf("Processing payload\n");
 		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
-		printf("hdr->msgtype:%d\n", hdr->msgtype==LOGIN_REQUEST);
-
-
-		// * P r o c e s s   L o g i n   R e q u e s t 
 
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
-
 		  struct login_request * lr = (struct login_request *) payload_c;
-
-		  printf("We got a login request\n");
-
-		  process_login_request(listener,i,fdmax,master,lr->name,mylist);
-
-		  printf("Finished prcessing login request\n");
-
+		  int retval = process_login_request(listener,i,fdmax,master,lr->name,mylist);
+		  putName(i,name,fdnamemap);
 		} else if(hdr->msgtype == MOVE){ // MOVE
-		  printf("We got a move\n");
+		  struct move * m = (struct move *) payload_c;
+		  char * name = getName(i,fdnamemap);
+		  process_move(listener,i,fdmax,master,name,m->direction,mylist);
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
 		  printf("We got an attack");
 		} else if(hdr->msgtype == SPEAK){ // SPEAK
