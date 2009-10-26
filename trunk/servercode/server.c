@@ -25,6 +25,14 @@
 int mc; // malloc counter
 int fc; // free counter
 
+void printMessage(char * message, int len){
+  int i;
+  for(i = 0; i < len; i++){
+    printf("%02x ", *(message+i));
+  }
+  printf("\n");
+}
+
 #include "model.h"
 #include "processHelper.h"
 
@@ -34,14 +42,6 @@ void printStat(){
   printf("\n");
   printf("Number of mallocs:%d\n",mc);
   printf("Number of frees:%d\n",fc);
-  printf("\n");
-}
-
-void printMessage(char * message, int len){
-  int i;
-  for(i = 0; i < len; i++){
-    printf("%02x ", *(message+i));
-  }
   printf("\n");
 }
 
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]){
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if(sock < 0){
     perror("socket() failed\n");
-    exit(0);
+    abort();
   } else {
     printf("Listenning sock is ready. Sock: %d\n",sock);
   }
@@ -102,17 +102,17 @@ int main(int argc, char* argv[]){
   int optval = 1;
   if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
     perror("Reuse failed");
-    exit(0); // TODO: check if this is the appropriate behavior.
+    abort(); // TODO: check if this is the appropriate behavior.
   }
 
   if (bind(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){
     perror("Bind failed");
-    exit(-1);
+    abort();
   }
 
   if (listen(sock,MAX_CONNECTION)){
     perror("listen");
-    exit(1);
+    abort();
   }
 
   FD_ZERO(&master);
@@ -223,6 +223,8 @@ int main(int argc, char* argv[]){
 		  printf("We got a login request\n");
 
 		  process_login_request(sock,desire_length,lr->name,mylist);
+
+		  printf("Finished prcessing login request\n");
 		  
 
 
