@@ -19,8 +19,8 @@ unsigned char * createloginreply( unsigned char error_code,
   hdr->msgtype = LOGIN_REPLY;
 
   payload->error_code = error_code;
-  payload->hp = hp;
-  payload->exp = exp;
+  payload->hp = htonl(hp);
+  payload->exp = htonl(exp);
   payload->x = x;
   payload->y = y;
   unsigned char * payload_c = (unsigned char*) payload;
@@ -43,7 +43,6 @@ unsigned char * createmovenotify(unsigned char* name,
 				 unsigned char x,
 				 unsigned char y,
 				 char buffer[]){
-  printf("Creating move notify\n");
   int i = 0;
   int j;
   // Header
@@ -54,8 +53,8 @@ unsigned char * createmovenotify(unsigned char* name,
   hdr->msgtype = MOVE_NOTIFY;
 
   strcpy(payload->name,name);
-  payload->hp = hp;
-  payload->exp = exp;
+  payload->hp = htonl(hp);
+  payload->exp = htonl(exp);
   payload->x = x;
   payload->y = y;
 
@@ -79,7 +78,7 @@ unsigned char * createmovenotify(unsigned char* name,
 unsigned char * createattacknotify(unsigned char* attacker_name,
 				   unsigned char* victim_name,
 				   unsigned int hp,
-				   unsigned int damage){
+				   unsigned char damage){
   int i = 0;
   int j;
   // Header
@@ -89,7 +88,7 @@ unsigned char * createattacknotify(unsigned char* attacker_name,
   hdr->len = htons(0x0020);
   hdr->msgtype = 0x6;
 
-  payload->hp = hp;
+  payload->hp = htonl(hp);
   payload->damage = damage;
   strcpy(payload->attacker_name,attacker_name);
   strcpy(payload->victim_name,victim_name);

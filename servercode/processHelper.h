@@ -10,11 +10,9 @@
 #define INVALID_STATE_SIZE 32
 
 int process_login_request(int listener, int sock, int fdmax, fd_set master, unsigned char * n, LinkedList * activeList){
-
     unsigned char name[strlen(n) + 1];
     strcpy(name,n);
     strcat(name,"\0");
-
     if(findPlayer(name,activeList)){ // if the guy is already logged in
 	sendinvalidstate(INVALID_STATE); // Send invalid state
     }else {
@@ -32,21 +30,17 @@ int process_login_request(int listener, int sock, int fdmax, fd_set master, unsi
 	newplayer->x = x;
 	newplayer->y = y;
 
-	//mkdir(DIR);
-	//chdir(DIR);
+	mkdir(DIR);
+	chdir(DIR);
 
 	//check if the file with that name exists
 	FILE * file = fopen(name,"r");
-
 	if(file){ // if file exists
 	    fscanf(file,"%d%d%d%d",&(newplayer->hp),&(newplayer->exp),&(newplayer->x),&(newplayer->y));
 	} else {
-	  
 	  FILE * file2 = fopen(name,"w+");
 	  if(file2 == NULL)	// open a new file with overwrite
 	    perror("file open");
-	  
-	  
 	  srand(time(NULL));
 
 	  // Initialize the player and add him to the list
@@ -74,16 +68,96 @@ int process_login_request(int listener, int sock, int fdmax, fd_set master, unsi
     }
 }
 
-int process_move(char payload_c[], Player * self, LinkedList * mylist){
+int process_move(int listener,
+		 int sock,
+		 int fdmax,
+		 fd_set master,
+		 char * name,
+		 char direction,
+		 LinkedList * mylist){
+
+  Player * player = findPlayer(name,mylist);
+  if(player){
+    if(direction==NORTH){
+      player->x-= 3;
+    }else if(direction==SOUTH){
+      player->x+= 3;
+    }else if(direction==WEST){
+      player->y-= 3;
+    }else if(direction==EAST){
+      player->y+= 3;
+    }
+    
+    //writeToFile(player);
+
+    unsigned char mntosent[MOVE_NOTIFY_SIZE];
+    createmovenotify(name,
+		     player->hp,
+		     player->exp,
+		     player->x,
+		     player->y,
+		     mntosent);
+    broadcast(master,listener,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
+  }else{ // Handle by the client
+    // Send 
+  }
 }
 
-int process_attack(char payload_c[], Player * self, LinkedList * mylist){
+int process_attack(char * attacker,
+		   char * victim,
+		   LinkedList * mylist){
+  if(strcmp(attacker,victim)){ // If the attacker is different than the victim
+    Player * victim = findPlayer(victim,mylist);
+    if(victim){ // If victim is not in the list
+      int damage = 10+rand()%11; // Randomize the damage from 10 to 20
+      if(damage > victim->hp){
+	damage = victim->hp;
+      }
+
+      victim->hp -= damage;
+      victim->exp += damage;
+
+      if(victim.hp == 0){
+	victim.hp = 30+rand()%21;
+	victim.x = rand()%100;
+	victim.y = rand()%100;
+      }
+      
+
+      // Broadcasting attack_notify
+      unsigned char antosent[ATTACK_NOTIFY_SIZE];
+      createattacknotify(name,newplayer->hp,
+		       newplayer->exp,
+		       newplayer->x,
+		       newplayer->y,
+		       antosent);
+      broadcast(master,listener,sock,fdmax,antosent,ATTACK_NOTIFY_SIZE);
+
+      // Broadcasting move notify
+      unsigned char mntosent[MOVE_NOTIFY_SIZE];
+      createmovenotify(name,
+		       player->hp,
+		       player->exp,
+		       player->x,
+		       player->y,
+		       mntosent);
+      broadcast(master,listener,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
+    }
+  }
 }
 
 int process_speak(char payload_c[]){
 }
 
-int process_logout(char payload_c[], LinkedList * mylist){
+int process_logout(char * name, LinkedList * mylist){
+  // Remove the player from the list
+  Player * player = findPlayer(name,mylist);
+  if(player){
+    writeToFile(player); // Write the data to file
+    FD_CLR(sock,master);
+  } else {
+    fprintf(stderr,"Process Logout: player %s is not online.\n",name);
+  }
 }
 
 int process_invalid_state(char payload_c[]){
