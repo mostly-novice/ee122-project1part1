@@ -1,8 +1,9 @@
 // Helper to send messages.
-unsigned char * createloginreply(int sock[], unsigned char error_code,
+unsigned char * createloginreply(int sock, unsigned char error_code,
 				 unsigned int hp, unsigned int exp,
 				 unsigned char x,
 				 unsigned y){
+  printf("Creating Login Reply\n");
   int i = 0;
   int j;
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
