@@ -61,8 +61,16 @@ def handleSpeak(player,message):
 
 def handleLogout(player);
 	store data for player
-	disconnect player
-	broadcast logout_notify
+	disconnect player	broadcast logout_notify
 
-handleLoginReply
-Form the packets and send them
+char* getName(int fd,char*map[]){
+  return map[fd];
+}
+
+void putName(int fd, char * name, char*map[]){
+  map[fd] = name;
+}
+
+int main(){
+    char * map[] = {'abc','def'};
+}
