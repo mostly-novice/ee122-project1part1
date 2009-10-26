@@ -11,9 +11,6 @@
 
 #include "header.h"
 #include "messages.h"
-#include "payloadHelper.h"
-#include "processHelper.h"
-#include "model.h"
 
 #define STDIN 0
 #define HEADER_LENGTH 4
@@ -28,8 +25,9 @@
 int mc; // malloc counter
 int fc; // free counter
 
-//#include "model.h"
-//#include "processHelper.h"
+#include "model.h"
+#include "processHelper.h"
+
 
 // Printing out the relevant statistics
 void printStat(){
@@ -47,7 +45,6 @@ void printMessage(char * message, int len){
   printf("\n");
 }
 
-//#include "processHelper"
 
 int main(int argc, char* argv[]){
 
@@ -214,10 +211,21 @@ int main(int argc, char* argv[]){
 		int j;
 		printf("Processing payload\n");
 		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
-		printf("hdr->msgtype:%d", hdr->msgtype==LOGIN_REQUEST);
+		printf("hdr->msgtype:%d\n", hdr->msgtype==LOGIN_REQUEST);
+
+
+		// * P r o c e s s   L o g i n   R e q u e s t 
+
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
+
+		  struct login_request * lr = (struct login_request *) payload_c;
+
 		  printf("We got a login request\n");
-		  process_login_request(sock,desire_length,payload_c,payload_c,mylist);
+
+		  process_login_request(sock,desire_length,lr->name,mylist);
+		  
+
+
 		} else if(hdr->msgtype == MOVE){ // MOVE
 		  printf("We got a move\n");
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
