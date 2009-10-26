@@ -27,6 +27,11 @@ int process_login_request(int listener, int sock, int fdmax, fd_set master, unsi
 	int x = rand()%100;
 	int y = rand()%100;
 
+	newplayer->hp = hp;
+	newplayer->exp = exp;
+	newplayer->x = x;
+	newplayer->y = y;
+
 	//mkdir(DIR);
 	//chdir(DIR);
 
@@ -51,15 +56,20 @@ int process_login_request(int listener, int sock, int fdmax, fd_set master, unsi
 	  // Write to file
 	  fprintf(file2,"aheuwadgauw");
 	} 
-
-	unsigned char * lrtosent = createloginreply(0,
-						    newplayer->hp,
-						    newplayer->exp,
-						    newplayer->x,
-						    newplayer->y); // added field sock
+	unsigned char lrtosent[LOGIN_REPLY_SIZE];
+	unsigned char mntosent[MOVE_NOTIFY_SIZE];
+	createloginreply(0,
+			 newplayer->hp,
+			 newplayer->exp,
+			 newplayer->x,
+			 newplayer->y,
+			 lrtosent);
 	unicast(sock,lrtosent,LOGIN_REPLY_SIZE);
-	unsigned char * mntosent = createmovenotify(name,newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
-	printMessage(mntosent,MOVE_NOTIFY_SIZE);
+	createmovenotify(name,newplayer->hp,
+			 newplayer->exp,
+			 newplayer->x,
+			 newplayer->y,
+			 mntosent);
 	broadcast(master,listener,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
     }
 }

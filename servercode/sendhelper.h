@@ -1,13 +1,17 @@
 // Helper to send messages.
 unsigned char * createloginreply( unsigned char error_code,
-				 unsigned int hp, unsigned int exp,
-				 unsigned char x,
-				 unsigned y){
+				  unsigned int hp,
+				  unsigned int exp,
+				  unsigned char x,
+				  unsigned char y,
+				  char buffer[]
+				  ){
   printf("Creating Login Reply\n");
+  printf("x=%d\n",x);
   int i = 0;
   int j;
-  struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct login_reply * payload = (struct login_reply *) malloc(sizeof(int)*3); // remember to free this
+  struct header *hdr = (struct header *) malloc(sizeof(int));
+  struct login_reply * payload = (struct login_reply *) malloc(sizeof(int)*3);
   unsigned char tosent[16];
 
   hdr->version = 0x04;
@@ -17,28 +21,28 @@ unsigned char * createloginreply( unsigned char error_code,
   payload->error_code = error_code;
   payload->hp = hp;
   payload->exp = exp;
-  payload->x = htons(hp);
-  payload->hp = htons(hp);
+  payload->x = x;
+  payload->y = y;
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
 
 
   for(j = 0; j < 16; j++){
-    if(j<4) tosent[j] = header_c[j];
-    else tosent[j] = payload_c[j-4];
+    if(j<4) buffer[j] = header_c[j];
+    else buffer[j] = payload_c[j-4];
   }
 
   // Send a login message to the server
   free(hdr);
   free(payload);
-  return tosent;
 }
 
 unsigned char * createmovenotify(unsigned char* name,
 				 unsigned int hp,
 				 unsigned int exp,
 				 unsigned char x,
-				 unsigned char y){
+				 unsigned char y,
+				 char buffer[]){
   printf("Creating move notify\n");
   int i = 0;
   int j;
@@ -46,33 +50,30 @@ unsigned char * createmovenotify(unsigned char* name,
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
   struct move_notify * payload = (struct move_notify *) malloc(sizeof(int)*5); // remember to free this
   hdr->version = 0x04;
-  hdr->len = htons(0x0010);
-  hdr->msgtype = 0x4;
-
-  printf("Header is: ");
-  printMessage(hdr,4);
+  hdr->len = htons(0x0018);
+  hdr->msgtype = MOVE_NOTIFY;
 
   strcpy(payload->name,name);
-  printMessage(name,10);
   payload->hp = hp;
   payload->exp = exp;
   payload->x = x;
   payload->y = y;
 
-  unsigned char * payload_c = (unsigned char*) payload;	// flatten payload struct
+  unsigned char * payload_c = (unsigned char*) payload;
+  printf("Payload: ");
+  printMessage(payload_c,20);
   unsigned char * header_c = (unsigned char *) hdr;	// flatten header struct
-  unsigned char tosent[24];
 
   for(j = 0; j < 24; j++){
-    if(j<4) tosent[j] = header_c[j];
-    else tosent[j] = payload_c[j-4];
+    if(j<4) buffer[j] = header_c[j];
+    else buffer[j] = payload_c[j-4];
   }
 
-  printMessage(tosent,24);
+  printf("tosent: ");
+  printMessage(buffer,24);
   // Send move notify message to client
   free(hdr);
   free(payload);
-  return tosent;
 }
 
 unsigned char * createattacknotify(unsigned char* attacker_name,
@@ -201,7 +202,8 @@ int broadcast(fd_set master, int listener, int sock, int fdmax, unsigned char * 
   int i;
   printf("Broadcasting\n");
   printf("fdmax=%d\n",fdmax);
-  printf("listener = %d", listener);
+  printf("listener = %d\n", listener);
+  printMessage(tosent,24);
   for(i=0; i<fdmax+1;i++){
     printf("Is %d in the master set:%d\n",i,FD_ISSET(i,&master));
     if (FD_ISSET(i,&master) && i != listener){
