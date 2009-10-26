@@ -220,17 +220,33 @@ int main(int argc, char* argv[]){
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
 		  struct login_request * lr = (struct login_request *) payload_c;
 		  int retval = process_login_request(listener,i,fdmax,master,lr->name,mylist);
-		  putName(i,name,fdnamemap);
+		  putName(i,lr->name,fdnamemap);
+
+
 		} else if(hdr->msgtype == MOVE){ // MOVE
 		  struct move * m = (struct move *) payload_c;
 		  char * name = getName(i,fdnamemap);
 		  process_move(listener,i,fdmax,master,name,m->direction,mylist);
+
+
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
 		  printf("We got an attack");
+		  struct attack * attack = (struct attack *) payload_c;
+		  char * attacker = getName(i,fdnamemap);
+		  char * victim = attack->victimname;
+		  process_attack(listener,
+				 i,
+				 fdmax,
+				 master,
+				 attacker,
+				 victim,
+				 mylist);
 		} else if(hdr->msgtype == SPEAK){ // SPEAK
 		  printf("We got a speak");
 		} else if(hdr->msgtype == LOGOUT){ 
-		  printf("We got a logout");		  
+		  printf("We got a logout");
+		  struct logout * logout = (struct logout *) payload_c;
+		  process_logout(i,fdnamemap);
 		} else {
 		  printf("We got nothing");
 		}
