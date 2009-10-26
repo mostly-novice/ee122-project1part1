@@ -12,7 +12,6 @@ unsigned char * createloginreply( unsigned char error_code,
   int j;
   struct header *hdr = (struct header *) malloc(sizeof(int));
   struct login_reply * payload = (struct login_reply *) malloc(sizeof(int)*3);
-  unsigned char tosent[16];
 
   hdr->version = 0x04;
   hdr->len = htons(0x0010);
@@ -68,9 +67,7 @@ unsigned char * createmovenotify(unsigned char* name,
     else buffer[j] = payload_c[j-4];
   }
 
-  printf("tosent: ");
   printMessage(buffer,24);
-  // Send move notify message to client
   free(hdr);
   free(payload);
 }
@@ -78,7 +75,8 @@ unsigned char * createmovenotify(unsigned char* name,
 unsigned char * createattacknotify(unsigned char* attacker_name,
 				   unsigned char* victim_name,
 				   unsigned int hp,
-				   unsigned char damage){
+				   unsigned char damage,
+				   char buffer[]){
   int i = 0;
   int j;
   // Header
@@ -95,22 +93,21 @@ unsigned char * createattacknotify(unsigned char* attacker_name,
 
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
-  unsigned char tosent[32];
 
   for(j = 0; j < 32; j++){
-    if(j<4) tosent[j] = header_c[j];
-    else tosent[j] = payload_c[j-4];
+    if(j<4) buffer[j] = header_c[j];
+    else buffer[j] = payload_c[j-4];
   }
 
   // Send a login message to the server
   free(hdr);
   free(payload);
-  return tosent;
 }
 
 
 unsigned char * createspeaknotify(unsigned char* broadcaster,
-				  char* m){
+				  char* m,
+				  char buffer[]){
   int i = 0;
   int j;
   unsigned int payloadLength;
@@ -120,12 +117,10 @@ unsigned char * createspeaknotify(unsigned char* broadcaster,
 
   if((strlen(m)+1)%4 != 0)
 	payloadLength = strlen(m) + 1 + 4 - ((strlen(m)+1)%4);
-  else
-	payloadLength = strlen(m) + 1 + 4;
 			  
   
   // *** IS THIS CORRECT?? ** //
-  unsigned int totalMessageLength = payloadLength + 4 + sizeof(int)*4;
+  unsigned int totalMessageLength = payloadLength + 4;
   strcpy(payload->broadcaster,broadcaster);
 
   hdr->version = 0x04;
@@ -134,20 +129,18 @@ unsigned char * createspeaknotify(unsigned char* broadcaster,
 
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
-  unsigned char tosent[totalMessageLength];
 
 
   for(j = 0; j < totalMessageLength; j++){
-    if(j<4) tosent[j] = header_c[j];
-    else tosent[j] = *(m+j-4);
+    if(j<4) buffer[j] = header_c[j];
+    else buffer[j] = *(m+j-4);
   }
 
   // Send a login message to the server
   free(hdr);
-  return tosent;
 }
 
-unsigned char * sendlogoutnotify(unsigned char* name){
+unsigned char * sendlogoutnotify(unsigned char* name, char buffer[]){
   int i = 0;
   int j;
   // Header
@@ -159,19 +152,17 @@ unsigned char * sendlogoutnotify(unsigned char* name){
   strcpy(payload->name,name);
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
-  unsigned char tosent[16];
 
   for(j = 0; j < 16; j++){
-    if(j<4) tosent[j] = header_c[j];
-    else tosent[j] = payload_c[j-4];
+    if(j<4) buffer[j] = header_c[j];
+    else buffer[j] = payload_c[j-4];
   }
 
   free(hdr);
   free(payload);
-  return tosent;
 }
 
-unsigned char * sendinvalidstate(unsigned char error_code){
+void createinvalidstate(unsigned char error_code, char buffer[]){
   int i = 0;
   int j;
   // Header
@@ -185,16 +176,14 @@ unsigned char * sendinvalidstate(unsigned char error_code){
 
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
-  unsigned char tosent[8];
 
   for(j = 0; j < 8; j++){
-    if(j<4) tosent[j] = header_c[j];
-    else tosent[j] = payload_c[j-4];
+    if(j<4) buffer[j] = header_c[j];
+    else buffer[j] = payload_c[j-4];
   }
 
   free(hdr);
   free(payload);
-  return tosent;
 }
 
 int broadcast(fd_set master, int listener, int sock, int fdmax, unsigned char * tosent,int expected){
@@ -227,6 +216,6 @@ int unicast(int sock, unsigned char * tosent, int expected){
     perror("send failed");
     abort();
   } else {
-    printf("Success");
+    printf("Success\n");
   }
 }
