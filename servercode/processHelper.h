@@ -2,14 +2,14 @@
 #include "sendhelper.h"
 #define DIR "users"
 
-#define LOGIN_REPLY_SIZE 32
-#define MOVE_NOTIFY_SIZE 32  
+#define LOGIN_REPLY_SIZE 16
+#define MOVE_NOTIFY_SIZE 24  
 #define ATTACK_NOTIFY_SIZE 32
 #define SPEAK_NOTIFY_SIZE 32
 #define LOGOUT_NOTIFY_SIZE 32
 #define INVALID_STATE_SIZE 32
 
-int process_login_request(int sock[], int length, unsigned char * n, LinkedList * activeList){
+int process_login_request(int listener, int sock, int fdmax, fd_set master, unsigned char * n, LinkedList * activeList){
 
     unsigned char name[strlen(n) + 1];
     strcpy(name,n);
@@ -27,25 +27,11 @@ int process_login_request(int sock[], int length, unsigned char * n, LinkedList 
 	int x = rand()%100;
 	int y = rand()%100;
 
-	// populate the newplayer fields
-	newplayer->hp = hp;
-	newplayer->exp = exp;
-	newplayer->x = x;
-	newplayer->y = y;
-
 	//mkdir(DIR);
 	//chdir(DIR);
 
-
 	//check if the file with that name exists
-	printf("opeing a file for reading\n");
 	FILE * file = fopen(name,"r");
-	printf("value of xp: %d\n",newplayer->hp);
-	printf("value of exp: %d\n",newplayer->exp);
-	printf("value of x: %d\n",newplayer->x);
-	printf("value of y: %d\n",newplayer->y);
-
-
 
 	if(file){ // if file exists
 	    fscanf(file,"%d%d%d%d",&(newplayer->hp),&(newplayer->exp),&(newplayer->x),&(newplayer->y));
@@ -66,16 +52,15 @@ int process_login_request(int sock[], int length, unsigned char * n, LinkedList 
 	  fprintf(file2,"aheuwadgauw");
 	} 
 
-	unsigned char * lrtosent = createloginreply(sock,
-						    0,
+	unsigned char * lrtosent = createloginreply(0,
 						    newplayer->hp,
 						    newplayer->exp,
 						    newplayer->x,
 						    newplayer->y); // added field sock
 	unicast(sock,lrtosent,LOGIN_REPLY_SIZE);
-	printf("Done sending\n");
 	unsigned char * mntosent = createmovenotify(name,newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
-	broadcast(sock,sizeof(sock),mntosent,MOVE_NOTIFY_SIZE); // changed socklist to sock
+	printMessage(mntosent,MOVE_NOTIFY_SIZE);
+	broadcast(master,listener,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
     }
 }
 

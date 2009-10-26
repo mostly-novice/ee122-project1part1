@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
 
   // Connection variables
   // Keep track of the list of sockets
-  int sock;
+  int listener;
   int myport;
   int done = 0;
   int status;
@@ -87,12 +87,12 @@ int main(int argc, char* argv[]){
       perror('setvbuf');
   }
 
-  sock = socket(AF_INET, SOCK_STREAM, 0);
-  if(sock < 0){
+  listener = socket(AF_INET, SOCK_STREAM, 0);
+  if(listener < 0){
     perror("socket() failed\n");
     abort();
   } else {
-    printf("Listenning sock is ready. Sock: %d\n",sock);
+    printf("Listenning sock is ready. Sock: %d\n",listener);
   }
 
   sin.sin_family = AF_INET;
@@ -100,17 +100,17 @@ int main(int argc, char* argv[]){
   sin.sin_port = htons(myport);
 
   int optval = 1;
-  if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
+  if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
     perror("Reuse failed");
     abort(); // TODO: check if this is the appropriate behavior.
   }
 
-  if (bind(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){
+  if (bind(listener,(struct sockaddr *) &sin, sizeof(sin)) < 0){
     perror("Bind failed");
     abort();
   }
 
-  if (listen(sock,MAX_CONNECTION)){
+  if (listen(listener,MAX_CONNECTION)){
     perror("listen");
     abort();
   }
@@ -118,9 +118,9 @@ int main(int argc, char* argv[]){
   FD_ZERO(&master);
   FD_ZERO(&readfds);
 
-  FD_SET(sock,&master);
+  FD_SET(listener,&master);
 
-  fdmax = sock;
+  fdmax = listener;
 
   printf("server: waiting for connections...\n");
   while(1){ // main accept() log
@@ -134,11 +134,11 @@ int main(int argc, char* argv[]){
     int i;
     for(i=0; i<= fdmax; i++){
       if (FD_ISSET(i,&readfds)){
-	if (i==sock){ // NEW CONNECTION COMING IN
+	if (i==listener){ // NEW CONNECTION COMING IN
 	  printf("Received a new connection\n");
 	  // handle new connection
 	  int addr_len = sizeof(client_sin);
-	  int newfd = accept(sock,(struct sockaddr*) &client_sin,&addr_len);
+	  int newfd = accept(listener,(struct sockaddr*) &client_sin,&addr_len);
 	  if (newfd < 0){
 	    perror("accept failed");
 	  } else {
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]){
 	    printf("New connection in socket %d\n", newfd);
 	  }
 	} else { // If someone has data
-	  printf("Handle data from client\n");
+	  printf("Handle data from socket %d\n", i);
 
 	  unsigned char read_buffer[4096];
 	  int expected_data_len = sizeof(read_buffer);
@@ -162,8 +162,6 @@ int main(int argc, char* argv[]){
 	  struct header * hdr;
 
 	  int read_bytes = recv(i,read_buffer,expected_data_len, 0);
-
-	  printf("ready_byte:%d\n",read_bytes);
   
 	  // handle data from a client
 	  if (read_bytes <= 0){
@@ -222,11 +220,9 @@ int main(int argc, char* argv[]){
 
 		  printf("We got a login request\n");
 
-		  process_login_request(sock,desire_length,lr->name,mylist);
+		  process_login_request(listener,i,fdmax,master,lr->name,mylist);
 
 		  printf("Finished prcessing login request\n");
-		  
-
 
 		} else if(hdr->msgtype == MOVE){ // MOVE
 		  printf("We got a move\n");
