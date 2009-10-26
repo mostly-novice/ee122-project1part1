@@ -1,5 +1,5 @@
 // Helper to send messages.
-unsigned char * createloginreply(int sock, unsigned char error_code,
+unsigned char * createloginreply( unsigned char error_code,
 				 unsigned int hp, unsigned int exp,
 				 unsigned char x,
 				 unsigned y){
@@ -44,12 +44,16 @@ unsigned char * createmovenotify(unsigned char* name,
   int j;
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct move_notify * payload = (struct move_notify *) malloc(sizeof(int)*3); // remember to free this
+  struct move_notify * payload = (struct move_notify *) malloc(sizeof(int)*5); // remember to free this
   hdr->version = 0x04;
-  hdr->len = htons(0x0018);
+  hdr->len = htons(0x0010);
   hdr->msgtype = 0x4;
 
+  printf("Header is: ");
+  printMessage(hdr,4);
+
   strcpy(payload->name,name);
+  printMessage(name,10);
   payload->hp = hp;
   payload->exp = exp;
   payload->x = x;
@@ -64,6 +68,7 @@ unsigned char * createmovenotify(unsigned char* name,
     else tosent[j] = payload_c[j-4];
   }
 
+  printMessage(tosent,24);
   // Send move notify message to client
   free(hdr);
   free(payload);
@@ -192,12 +197,18 @@ unsigned char * sendinvalidstate(unsigned char error_code){
   return tosent;
 }
 
-int broadcast(int socklist[], int socklen, unsigned char * tosent,int expected){
-  printf("Broadcasting\n");
+int broadcast(fd_set master, int listener, int sock, int fdmax, unsigned char * tosent,int expected){
   int i;
-  for(i=0; i<socklen;i++){
-    int bytes_sent = send(socklist[i], tosent,expected,0);
-    if (bytes_sent < 0) perror("send failed");
+  printf("Broadcasting\n");
+  printf("fdmax=%d\n",fdmax);
+  printf("listener = %d", listener);
+  for(i=0; i<fdmax+1;i++){
+    printf("Is %d in the master set:%d\n",i,FD_ISSET(i,&master));
+    if (FD_ISSET(i,&master) && i != listener){
+      printf("Sending to sock:%d\n",i);
+      int bytes_sent = send(i, tosent,expected,0);
+      if (bytes_sent < 0) perror("send failed");
+    }
   }
 }
 
