@@ -117,9 +117,7 @@ unsigned char * createspeaknotify(unsigned char* broadcaster,
 
   if((strlen(m)+1)%4 != 0)
 	payloadLength = strlen(m) + 1 + 4 - ((strlen(m)+1)%4);
-			  
   
-  // *** IS THIS CORRECT?? ** //
   unsigned int totalMessageLength = payloadLength + 4;
   strcpy(payload->broadcaster,broadcaster);
 
