@@ -38,31 +38,8 @@ void printPlayers(LinkedList * list){
   printf("---------------------\n");
 }
 
-void updateSelfVision(int x, int y, LinkedList * list){
-  /* Node * p; */
-/*   for(p = list->head; p != NULL; p = p->next){ */
-/*     if (isVisible(x,y,p->datum->x,p->datum->y)){ */
-/*       p->datum->visible = 1; */
-/*     } */
-/*   } */
-}
-
-void checkSelfVision(int x, int y, LinkedList * list){
-  /* Node * p; */
-/*   for(p = list->head; p != NULL; p = p->next){ */
-/*     if (isVisible(x,y,p->datum->x,p->datum->y)){ */
-/*       if (p->datum->visible==0){ */
-/* 	p->datum->visible = 1; */
-/* 	on_move_notify(p->datum->name, */
-/* 		       p->datum->x, */
-/* 		       p->datum->y, */
-/* 		       p->datum->hp, */
-/* 		       p->datum->exp); */
-/*       } */
-/*     } else { */
-/*       p->datum->visible = 0; */
-/*     } */
-/*   } */
+void * addPlayer(Player * player, LinkedList * list){
+  
 }
 
 Node * findPlayer(char * name, LinkedList * list){
