@@ -1,6 +1,5 @@
 #include <time.h>
 #include "sendhelper.h"
-#define DIR "users"
 
 #define LOGIN_REPLY_SIZE 16
 #define MOVE_NOTIFY_SIZE 24  
@@ -31,9 +30,6 @@ int process_login_request(int listener, int sock, int fdmax, fd_set master, unsi
 	newplayer->exp = exp;
 	newplayer->x = x;
 	newplayer->y = y;
-
-	mkdir(DIR);
-	chdir(DIR);
 
 	//check if the file with that name exists
 	FILE * file = fopen(name,"r");
@@ -89,8 +85,6 @@ int process_move(int listener,
     }else if(direction==EAST){
       player->y+= 3;
     }
-    
-    //writeToFile(player);
 
     unsigned char mntosent[MOVE_NOTIFY_SIZE];
     createmovenotify(name,
@@ -99,6 +93,7 @@ int process_move(int listener,
 		     player->x,
 		     player->y,
 		     mntosent);
+    printMessage(mntosent,MOVE_NOTIFY_SIZE);
     broadcast(master,listener,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
   }else{ // Handle by the client
     // Send 
@@ -172,7 +167,7 @@ int process_logout(int listener,
     removePlayer(name,mylist);
 
     unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-    createlogoutnotify(lntosent);
+    createlogoutnotify(name,lntosent);
     broadcast(master,listener,sock,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
   } else {
     fprintf(stderr,"Process Logout: player %s is not online.\n",name);

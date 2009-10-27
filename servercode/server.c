@@ -14,6 +14,7 @@
 
 #define STDIN 0
 #define HEADER_LENGTH 4
+#define DIR "users"
 
 // Flags
 #define HEADER 0
@@ -32,28 +33,9 @@ void printMessage(char * message, int len){
   }
   printf("\n");
 }
-
 #include "model.h"
 #include "processHelper.h"
-
-
-// Printing out the relevant statistics
-void printStat(){
-  printf("\n");
-  printf("Number of mallocs:%d\n",mc);
-  printf("Number of frees:%d\n",fc);
-  printf("\n");
-}
-
-char* getName(int fd,char*map[]){
-  return map[fd];
-}
-
-void putName(int fd, char * name, char*map[]){
-  map[fd] = name;
-}
-
-
+#include "aux.h"
 int main(int argc, char* argv[]){
 
   // Model Variables
@@ -61,8 +43,6 @@ int main(int argc, char* argv[]){
   mylist->head = NULL;
   mylist->tail = NULL;
   struct sockaddr_in client_sin;
-
-  char*map[20];
   Node * p;
   int isLogin = 0;
   char command[80];
@@ -91,6 +71,9 @@ int main(int argc, char* argv[]){
   // Initilizations
   int c;
   char* pvalue=NULL;
+
+  mkdir(DIR);
+  chdir(DIR);
 
   myport = atoi(argv[2]);
 
@@ -220,20 +203,25 @@ int main(int argc, char* argv[]){
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
 		  struct login_request * lr = (struct login_request *) payload_c;
 		  int retval = process_login_request(listener,i,fdmax,master,lr->name,mylist);
-		  putName(i,lr->name,fdnamemap);
+		  char tostore[strlen(lr->name)];
+		  strcpy(tostore,lr->name);
+		  fdnamemap[i] = tostore;
+		  printf("Map at i:%s\n",fdnamemap[i]);
 
 
 		} else if(hdr->msgtype == MOVE){ // MOVE
+		  printf("Got a move message\n");
 		  struct move * m = (struct move *) payload_c;
 		  char * name = getName(i,fdnamemap);
+		  printf("Sender:%s\n", name);
 		  process_move(listener,i,fdmax,master,name,m->direction,mylist);
 
 
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
 		  printf("We got an attack");
-		  struct attack * attack = (struct attack *) payload_c;
+		  struct attack * attackPayload = (struct attack *) payload_c;
 		  char * attacker = getName(i,fdnamemap);
-		  char * victim = attack->victimname;
+		  char * victim = attackPayload->victimname;
 		  process_attack(listener,
 				 i,
 				 fdmax,
@@ -245,8 +233,13 @@ int main(int argc, char* argv[]){
 		  printf("We got a speak");
 		} else if(hdr->msgtype == LOGOUT){ 
 		  printf("We got a logout");
-		  struct logout * logout = (struct logout *) payload_c;
-		  process_logout(i,fdnamemap);
+		  char * name = getName(i,fdnamemap);
+		  process_logout(listener,
+				 i,
+				 fdmax,
+				 master,
+				 name,
+				 mylist);
 		} else {
 		  printf("We got nothing");
 		}

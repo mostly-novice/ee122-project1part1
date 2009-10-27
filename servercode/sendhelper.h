@@ -36,7 +36,7 @@ unsigned char * createloginreply( unsigned char error_code,
   free(payload);
 }
 
-unsigned char * createmovenotify(unsigned char* name,
+void createmovenotify(unsigned char* name,
 				 unsigned int hp,
 				 unsigned int exp,
 				 unsigned char x,
@@ -140,7 +140,7 @@ unsigned char * createspeaknotify(unsigned char* broadcaster,
   free(hdr);
 }
 
-unsigned char * sendlogoutnotify(unsigned char* name, char buffer[]){
+unsigned char * createlogoutnotify(unsigned char* name, char buffer[]){
   int i = 0;
   int j;
   // Header
