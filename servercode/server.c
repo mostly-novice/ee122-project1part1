@@ -93,6 +93,9 @@ int main(int argc, char* argv[]){
   sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(myport);
 
+
+  struct timeval tv;
+
   int optval = 1;
   if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
     perror("Reuse failed");
@@ -118,6 +121,8 @@ int main(int argc, char* argv[]){
 
   printf("server: waiting for connections...\n");
   while(1){ // main accept() log
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
     readfds = master; // copy it
     if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
@@ -262,5 +267,6 @@ int main(int argc, char* argv[]){
 	}
       }
     }
+    printf("5 seconds... look ma' no blocking\n");
   }
 }

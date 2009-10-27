@@ -181,10 +181,10 @@ int updateHP(LinkedList * mylist){
    if(mylist->head == NULL){
        return 0; // nothing updated
    }
-   Player * i;
-   for(i=mylist->head->datum; i!=NULL;i=i->next->datum){
-       printf("updating %s's hp\n",i->name);
-       i->hp = i->hp + 1;
+   Node * i;
+   for(i=mylist->head; i!=NULL;i=i->next){
+       printf("updating %s's hp\n",i->datum->name);
+       i->datum->hp = i->datum->hp + 1;
    }
 
 }
