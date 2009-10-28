@@ -220,15 +220,15 @@ int main(int argc, char* argv[]){
 		if (check_malformed_header(hdr->version,hdr->len,hdr->msgtype) < 0){
 		  printf("The header is malformed.\n");
 		  bufferdata * toberemoved = fdbuffermap[i];
-		  // Freeing
-		  free(toberemoved->buffer);
-		  free(toberemoved);
 
+		  // Freeing
+		  //free(toberemoved->buffer);
+		  //free(toberemoved);
 		  // Closing socket
+
 		  close(i);
 		  FD_CLR(i,&login);
 		  FD_CLR(i,&master);
-		  // Perform logging out
 		  Player * player = findPlayer(fdnamemap[i],mylist);
 		  if(player){
 		    removePlayer(fdnamemap[i],mylist);
@@ -238,20 +238,24 @@ int main(int argc, char* argv[]){
 		    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 		    createlogoutnotify(fdnamemap[i],lntosent);
 		    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+
 		    // Clean up the buffer
+		    printf("Cleaning up the buffers\n");
 		    free(fdnamemap[i]);
 		    fdnamemap[i] = NULL;
 		  }
-		}
+		  break;
+		} else {
 
-		// Move the pointers
-		char * temp = (char*) malloc(sizeof(char)*(bufferd->buffer_size-HEADER_LENGTH));
-		memcpy(temp,bufferd->buffer+4,bufferd->buffer_size-4);
-		free(bufferd->buffer);
-		bufferd->buffer = temp;
-		bufferd->buffer_size -= HEADER_LENGTH;
-		bufferd->desire_length = ntohs(hdr->len)-4;
-		bufferd->flag = PAYLOAD;
+		  // Move the pointers
+		  char * temp = (char*) malloc(sizeof(char)*(bufferd->buffer_size-HEADER_LENGTH));
+		  memcpy(temp,bufferd->buffer+4,bufferd->buffer_size-4);
+		  free(bufferd->buffer);
+		  bufferd->buffer = temp;
+		  bufferd->buffer_size -= HEADER_LENGTH;
+		  bufferd->desire_length = ntohs(hdr->len)-4;
+		  bufferd->flag = PAYLOAD;
+		}
 
 	      } else { // Payload
 		char payload_c[bufferd->desire_length];
@@ -280,9 +284,7 @@ int main(int argc, char* argv[]){
 
 		    } else {
 		      FD_SET(i,&login); // Log him in
-
 		      Player * newplayer = process_login_request(0,i,fdmax,login,lr->name,mylist);
-		      
 		      if (!fdnamemap[i]){ fdnamemap[i] = malloc(sizeof(char)*11);}
 		      strcpy(fdnamemap[i],lr->name);
 		      strcpy(newplayer->name,fdnamemap[i]);
