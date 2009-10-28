@@ -151,13 +151,20 @@ static inline int check_player_message(const char *message)
 {
   size_t i;
   /* Must not be null. */
-  if (!message[0]) return 0;
+  if (!message[0]){
+    printf("Message must not be null.\n");
+    return 0;
+  }
   for (i = 0; i <= EE122_MAX_MSG_LENGTH; ++ i) {
     if (!message[i]) return 1;
     /* Must not contain a non-printable character. */
-    if (!isprint(message[i])) return 0;
+    if (!isprint(message[i])){
+      printf("Message must not contain a non-printable character.\n");
+      return 0;
+    }
   }
   /* Must be null terminated. */
+  printf("Message must not be null terminated.\n");
   return 0;
 }
 
