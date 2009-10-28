@@ -186,6 +186,8 @@ int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expe
  * expected: is the size you expected
  */
 int unicast(int sock, unsigned char * tosent, int expected){
+  printf("Sending(unicast)...");
+  printMessage(tosent,expected);
   int bytes_sent = send(sock, tosent,expected,0);
   if (bytes_sent < 0){
     perror("send failed");
