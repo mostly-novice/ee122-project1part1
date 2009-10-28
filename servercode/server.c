@@ -45,6 +45,8 @@ void printMessage(char * message, int len){
 #include "processHelper.h"
 #include "aux.h"
 int main(int argc, char* argv[]){
+  // timer variable
+  struct timeval tv;
 
   // Model Variables
   LinkedList * mylist = (LinkedList *) malloc (sizeof(LinkedList));
@@ -135,6 +137,7 @@ int main(int argc, char* argv[]){
   fdmax = listener;
 
   while(1){ // main accept() log
+    tv.tv_sec = 5;
     readfds = master; // copy it
     if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
@@ -498,5 +501,7 @@ int main(int argc, char* argv[]){
 	}
       }
     }
+    // update hp here
+    updateHP(mylist);
   }
 }
