@@ -276,6 +276,10 @@ int main(int argc, char* argv[]){
 
 		  } else { // If he is not logged in
 		    struct login_request * lr = (struct login_request *) payload_c;
+		    // check if name is valid
+		    if( (check_player_name(lr->name)) == 0 ){
+			handle_exception();
+		    }
 		    if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
 		      Player * newplayer = process_login_request(1,i,fdmax,login,lr->name,mylist);
 

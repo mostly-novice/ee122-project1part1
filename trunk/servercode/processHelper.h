@@ -144,3 +144,7 @@ int updateHP(LinkedList * mylist){
   }
 
 }
+
+void handle_exception(bufferdata** fdbuffermap, char **fdnamemap, LinkedList *mylist, int sock, ){
+
+}
