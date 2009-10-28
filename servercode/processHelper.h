@@ -8,7 +8,7 @@
 #define LOGOUT_NOTIFY_SIZE 16
 #define INVALID_STATE_SIZE 8
 
-Player * process_login_request(int sock, int fdmax, fd_set login, unsigned char * n, LinkedList * activeList){
+Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login, unsigned char * n, LinkedList * activeList){
   char * name = (char *) malloc(sizeof(char)*(strlen(n)+1));
   strcpy(name,n);
   strcat(name,"\0");
@@ -44,7 +44,7 @@ Player * process_login_request(int sock, int fdmax, fd_set login, unsigned char 
   } 
   unsigned char lrtosent[LOGIN_REPLY_SIZE];
   unsigned char mntosent[MOVE_NOTIFY_SIZE];
-  createloginreply(0,
+  createloginreply(errorcode,
 		   newplayer->hp,
 		   newplayer->exp,
 		   newplayer->x,
