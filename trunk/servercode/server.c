@@ -162,8 +162,6 @@ int main(int argc, char* argv[]){
 	  }
 
 	} else { // If someone has data
-	  
-	  printf("Someone has data");
 	  unsigned char read_buffer[4096];
 	  int expected_data_len = sizeof(read_buffer);
 	  unsigned char *p = (char*) read_buffer; // Introduce a new pointer
@@ -350,6 +348,8 @@ int main(int argc, char* argv[]){
 			player->x += 3;
 			player->x = (100+player->x) % 100;
 		      } else {
+
+			// The direction is bad
 			printf("The direction is malformed.\n");
 			bufferdata * toberemoved = fdbuffermap[i];
 			//free(toberemoved->buffer);
@@ -367,9 +367,6 @@ int main(int argc, char* argv[]){
 			  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 			  createlogoutnotify(fdnamemap[i],lntosent);
 			  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-			  
-			  // Clean up the buffer
-			  printf("Cleaning up the buffers\n");
 			  free(fdnamemap[i]);
 			  fdnamemap[i] = NULL;
 			} else {
@@ -378,7 +375,6 @@ int main(int argc, char* argv[]){
 			}
 			break;
 		      }
-		    
 		      unsigned char mntosent[MOVE_NOTIFY_SIZE];
 		      createmovenotify(fdnamemap[i],
 				       player->hp,

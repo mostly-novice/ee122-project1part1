@@ -51,6 +51,23 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
 		   newplayer->y,
 		   lrtosent);
   unicast(sock,lrtosent,LOGIN_REPLY_SIZE);
+
+  Node * p;
+  for(p = activeList->head; p != NULL; p = p->next){
+    if (strcmp(p->datum->name,newplayer->name)!=0){
+      printf("Sending to:%s\n",newplayer->name);
+      Player * player = p->datum;
+      createmovenotify(player->name,
+		       player->hp,
+		       player->exp,
+		       player->x,
+		       player->y,
+		       mntosent);
+      unicast(sock,mntosent,MOVE_NOTIFY_SIZE);
+    }
+  }
+  
+  memset(mntosent,0,MOVE_NOTIFY_SIZE);
   createmovenotify(name,newplayer->hp,
 		   newplayer->exp,
 		   newplayer->x,
