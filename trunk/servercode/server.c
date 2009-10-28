@@ -221,8 +221,9 @@ int main(int argc, char* argv[]){
 		  printf("The header is malformed.\n");
 		  bufferdata * toberemoved = fdbuffermap[i];
 		  // Freeing
-		  //free(toberemoved->buffer);
-		  //free(toberemoved);
+		  free(toberemoved->buffer);
+		  free(toberemoved);
+
 		  // Closing socket
 		  close(i);
 		  FD_CLR(i,&login);
@@ -275,18 +276,12 @@ int main(int argc, char* argv[]){
 		  } else { // If he is not logged in
 		    struct login_request * lr = (struct login_request *) payload_c;
 		    if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
-		      // Send invalid state with error code = 1;
-		      unsigned char ivstate[8];
-		      createinvalidstate(1,ivstate);
-		      int bytes_sent = send(i, ivstate,INVALID_STATE_SIZE,0);
-		      if (bytes_sent < 0){
-			perror("send failed");
-			abort();
-		      }
+		      Player * newplayer = process_login_request(1,i,fdmax,login,lr->name,mylist);
+
 		    } else {
 		      FD_SET(i,&login); // Log him in
 
-		      Player * newplayer = process_login_request(i,fdmax,login,lr->name,mylist);
+		      Player * newplayer = process_login_request(0,i,fdmax,login,lr->name,mylist);
 		      
 		      if (!fdnamemap[i]){ fdnamemap[i] = malloc(sizeof(char)*11);}
 		      strcpy(fdnamemap[i],lr->name);
@@ -392,8 +387,6 @@ int main(int argc, char* argv[]){
 		    } else {
 		      totallen = msglen;
 		    }
-
-		    printf("totallength:%d msglen:%d\n",totallen,msglen);
 		    unsigned char spktosent[totallen];
 		    createspeaknotify(fdnamemap[i],payload_c,totallen,spktosent);
 		    printMessage(spktosent,totallen);
@@ -422,8 +415,6 @@ int main(int argc, char* argv[]){
 		} else {
 		  printf("We got nothing");
 		}
-		//else if(hdr->msgtype == INVALID_STATE){
-		//} // End of processing reply
 
 		// Move the pointers
 		char * temp = (char*) malloc(sizeof(char)*(bufferd->buffer_size-bufferd->desire_length));
