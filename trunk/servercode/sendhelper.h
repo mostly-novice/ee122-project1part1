@@ -168,12 +168,12 @@ void createinvalidstate(unsigned char error_code, char buffer[]){
 }
 
 int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expected){
-  printf("Sending: ");
-  printMessage(tosent,expected);
   int i;
   for(i=0; i<fdmax+1;i++){
     //printf("Is socket %d logged in? %d\n",i,FD_ISSET(i,&login));
     if (FD_ISSET(i,&login)){
+      printf("Sending: ");
+      printMessage(tosent,expected);
       int bytes_sent = send(i, tosent,expected,0);
       if (bytes_sent < 0) perror("send failed");
     }
