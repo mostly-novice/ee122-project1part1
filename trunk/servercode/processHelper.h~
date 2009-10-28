@@ -1,89 +1,161 @@
 #include <time.h>
 #include "sendhelper.h"
 
-#define DIR "users"
-
-#define LOGIN_REPLY_SIZE 32
-#define MOVE_NOTIFY_SIZE 32  
+#define LOGIN_REPLY_SIZE 16
+#define MOVE_NOTIFY_SIZE 24  
 #define ATTACK_NOTIFY_SIZE 32
 #define SPEAK_NOTIFY_SIZE 32
 #define LOGOUT_NOTIFY_SIZE 32
 #define INVALID_STATE_SIZE 32
 
-int process_login_request(int sock[], int length, unsigned char * n, LinkedList * activeList){
+Player * process_login_request(int sock, int fdmax, fd_set login, unsigned char * n, LinkedList * activeList){
+  char * name = (char *) malloc(sizeof(char)*(strlen(n)+1));
+  strcpy(name,n);
+  strcat(name,"\0");
+  if(findPlayer(name,activeList)){ // if the guy is already logged in
+    char invstatetosent[8];
+    createinvalidstate(0,invstatetosent);
+    unicast(sock,invstatetosent,INVALID_STATE_SIZE);
+  }else {
+    // make a new instance of Player
+    Player * newplayer = (Player *) malloc(sizeof(Player));
 
-    unsigned char name[strlen(n) + 1];
-    strcpy(name,n);
-    strcat(name,"\0");
+    // randomize stats
+    int hp = 100 + rand()%21;
+    int exp = 0;
+    int x = rand()%100;
+    int y = rand()%100;
 
-    if(findPlayer(name,activeList)){ // if the guy is already logged in
-	sendinvalidstate(INVALID_STATE); // Send invalid state
-    }else {
-	// make a new instance of Player
-	Player * newplayer = (Player *) malloc(sizeof(Player));
+    strcpy(newplayer->name,name);
+    newplayer->hp = hp;
+    newplayer->exp = exp;
+    newplayer->x = x;
+    newplayer->y = y;
 
-	// randomize stats
-	int hp = 100 + rand()%21;
-	int exp = 0;
-	int x = rand()%100;
-	int y = rand()%100;
+    //check if the file with that name exists
+    FILE * file = fopen(name,"r");
+    if(file){ // if file exists
+      fscanf(file,"%d%d%d%d",&(newplayer->hp),&(newplayer->exp),&(newplayer->x),&(newplayer->y));
+    } else {
+      FILE * file2 = fopen(name,"w+");
+      if(file2 == NULL)	// open a new file with overwrite
+	perror("file open");
+      srand(time(NULL));
+	
+      // Write to file
+      fprintf(file2,"%d %d %d %d",newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
+    } 
+    unsigned char lrtosent[LOGIN_REPLY_SIZE];
+    unsigned char mntosent[MOVE_NOTIFY_SIZE];
+    createloginreply(0,
+		     newplayer->hp,
+		     newplayer->exp,
+		     newplayer->x,
+		     newplayer->y,
+		     lrtosent);
+    unicast(sock,lrtosent,LOGIN_REPLY_SIZE);
+    createmovenotify(name,newplayer->hp,
+		     newplayer->exp,
+		     newplayer->x,
+		     newplayer->y,
+		     mntosent);
+    broadcast(login,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
+    return newplayer;
+  }
+}
+int process_move(int listener,
+		 int sock,
+		 int fdmax,
+		 fd_set master,
+		 Player * player,
+		 char direction,
+		 LinkedList * mylist){
+}
 
-	// populate the newplayer fields
-	newplayer->hp = hp;
-	newplayer->exp = exp;
-	newplayer->x = x;
-	newplayer->y = y;
+int process_attack(int sock,
+		   int fdmax,
+		   fd_set login,
+		   char * attacker,
+		   char * victim,
+		   LinkedList * mylist){
+  if(strcmp(attacker,victim)){ // If the attacker is different than the victim
+    Player * victim = findPlayer(victim,mylist);
+    if(victim){ // If victim is not in the list
+      int damage = 10+rand()%11; // Randomize the damage from 10 to 20
+      if(damage > victim->hp){
+	damage = victim->hp;
+      }
 
-	mkdir(DIR);
-	chdir(DIR);
+      victim->hp -= damage;
+      victim->exp += damage;
+      
 
+      // Broadcasting attack_notify
+      unsigned char antosent[ATTACK_NOTIFY_SIZE];
+      createattacknotify(attacker,
+			 victim,
+			 victim->hp,
+			 damage,
+			 antosent);
+	printMessage(antosent,ATTACK_NOTIFY_SIZE);
+      broadcast(login,sock,fdmax,antosent,ATTACK_NOTIFY_SIZE);
 
-	//check if the file with that name exists
-	printf("opeing a file for reading\n");
-	FILE * file = fopen(name,"r");
-	printf("value of file: %d\n",file);
-	printf("value of xp: %d\n",newplayer->hp);
-	printf("value of exp: %d\n",newplayer->exp);
-	printf("value of x: %d\n",newplayer->x);
-	printf("value of y: %d\n",newplayer->y);
+      if(victim->hp == 0){
+	victim->hp = 30+rand()%21;
+	victim->x = rand()%100;
+	victim->y = rand()%100;
+      
 
-
-
-	if(file){ // if file exists
-	    printf("writing to file now\n");
-	    fscanf(file,"%d%d%d%d",&(newplayer->hp),&(newplayer->exp),&(newplayer->x),&(newplayer->y));
-	} else {
-	    
-	    file = fopen(name,"w+"); // open a new file with overwrite
-	    srand(time(NULL));
-
-	    // Initialize the player and add him to the list
-	    initialize(newplayer,name,hp,exp,x,y);
-	    addPlayer(newplayer,activeList);
-
-	    // Write to file
-	    fprintf(file,"%d %d %d %d",newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
-	} 
-
-	printf("hello world\n");
-	unsigned char * lrtosent = createloginreply(sock,0,newplayer->hp,newplayer->exp,newplayer->x,newplayer->y); // added field sock
-	unicast(sock,lrtosent,LOGIN_REPLY_SIZE);
-	unsigned char * mntosent = createmovenotify(name,newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
-	broadcast(sock,sizeof(sock),mntosent,MOVE_NOTIFY_SIZE); // changed socklist to sock
+	// Broadcasting move notify
+	unsigned char mntosent[MOVE_NOTIFY_SIZE];
+	createmovenotify(victim,
+			 victim->hp,
+			 victim->exp,
+			 victim->x,
+			 victim->y,
+			 mntosent);
+	broadcast(login,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
+      }
     }
-}
-
-int process_move(char payload_c[], Player * self, LinkedList * mylist){
-}
-
-int process_attack(char payload_c[], Player * self, LinkedList * mylist){
+  }
 }
 
 int process_speak(char payload_c[]){
 }
 
-int process_logout(char payload_c[], LinkedList * mylist){
+int process_logout(int sock,
+		   int fdmax,
+		   fd_set master,
+		   char * name,
+		   LinkedList * mylist){
+  // Remove the player from the list
+  Player * player = findPlayer(name,mylist);
+  if(player){
+    writeToFile(player); // Write the data to file
+
+    // Clean up
+    FD_CLR(sock,&master);
+    removePlayer(name,mylist);
+
+    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+    createlogoutnotify(name,lntosent);
+    broadcast(master,sock,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+  } else {
+    fprintf(stderr,"Process Logout: player %s is not online.\n",name);
+  }
 }
 
 int process_invalid_state(char payload_c[]){
+}
+
+int updateHP(LinkedList * mylist){
+  if(mylist->head == NULL){
+    return 0; // nothing updated
+  }
+  Node * i;
+  for(i=mylist->head; i!=NULL;i=i->next){
+    printf("updating %s's hp\n",i->datum->name);
+    i->datum->hp = i->datum->hp + 1;
+  }
+
 }

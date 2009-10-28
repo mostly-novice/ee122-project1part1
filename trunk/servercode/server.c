@@ -58,9 +58,15 @@ int main(int argc, char* argv[]){
   // Select
   fd_set readfds;
   fd_set master; // master fd
+  fd_set login;
   int fdmax;
   
-  char * fdnamemap[20];
+  char ** fdnamemap = malloc(sizeof(*fdnamemap)*20);
+  int k;
+  for(k=0; k<22; ++k ){
+    fdnamemap[k] = NULL;
+  }
+
 
   struct sockaddr_in sin;
   memset(&sin, 0, sizeof(sin));
@@ -78,7 +84,7 @@ int main(int argc, char* argv[]){
   myport = atoi(argv[2]);
 
   if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){
-      perror('setvbuf');
+    perror('setvbuf');
   }
 
   listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -92,9 +98,6 @@ int main(int argc, char* argv[]){
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(myport);
-
-
-  struct timeval tv;
 
   int optval = 1;
   if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
@@ -114,15 +117,13 @@ int main(int argc, char* argv[]){
 
   FD_ZERO(&master);
   FD_ZERO(&readfds);
+  FD_ZERO(&login);
 
   FD_SET(listener,&master);
 
   fdmax = listener;
 
-  printf("server: waiting for connections...\n");
   while(1){ // main accept() log
-    tv.tv_sec = 5;
-    tv.tv_usec = 0;
     readfds = master; // copy it
     if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
@@ -145,8 +146,8 @@ int main(int argc, char* argv[]){
 	    if (newfd > fdmax) fdmax = newfd;
 	    printf("New connection in socket %d\n", newfd);
 	  }
+
 	} else { // If someone has data
-	  printf("Handle data from socket %d\n", i);
 
 	  unsigned char read_buffer[4096];
 	  int expected_data_len = sizeof(read_buffer);
@@ -166,28 +167,42 @@ int main(int argc, char* argv[]){
 	    if(read_bytes == 0){
 	      // Connection closed
 	      printf("Socket %d hung up\n",i);
+	      FD_CLR(i,&login);
+	      Player * player = findPlayer(fdnamemap[i],mylist);
+	      if(player){
+		removePlayer(fdnamemap[i],mylist);
+		FILE *file = fopen(fdnamemap[i],"w+");
+		fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		fclose(file);
+		
+		unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		createlogoutnotify(fdnamemap[i],lntosent);
+		broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		FD_CLR(i,&master);
+		// Clean up the buffer
+		fdnamemap[i] = NULL;
+	      }
 	    } else {
 	      perror("recv");
 	    }
 	    close(i); // bye!
 	    FD_CLR(i,&master); // remove from the master set
+
+
 	  } else {
 	    // we got some data from a client
 	    // Handling incoming data
 	    buffer = realloc(buffer,buffer_size+read_bytes);
 	    memcpy(buffer,read_buffer,read_bytes);
 	    buffer_size += read_bytes;
-	    
+	
 	    while (buffer_size >= desire_length){
 	      if(flag == HEADER){
-		printf("Processing header\n");
 		// Copy the header
 		int j;
 		for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
 
 		hdr = (struct header *) header_c;
-		printf("Got the header\n");
-		printMessage(read_buffer,16);
 
 		check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
 
@@ -204,47 +219,144 @@ int main(int argc, char* argv[]){
 		char payload_c[desire_length];
 		int j;
 		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
-
+		printf("Received: ");
+		printMessage(hdr,4);
+		printMessage(payload_c,ntohs(hdr->len));
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
-		  struct login_request * lr = (struct login_request *) payload_c;
-		  int retval = process_login_request(listener,i,fdmax,master,lr->name,mylist);
-		  char tostore[strlen(lr->name)];
-		  strcpy(tostore,lr->name);
-		  fdnamemap[i] = tostore;
-		  printf("Map at i:%s\n",fdnamemap[i]);
 
+		  if (FD_ISSET(i,&login)){
+		    // Send invalid state with error code = 1
+		    unsigned char ivstate[8];
+		    createinvalidstate(1,ivstate);
+		    int bytes_sent = send(i, ivstate,INVALID_STATE_SIZE,0);
+		    if (bytes_sent < 0){
+		      perror("send failed");
+		      abort();
+		    }
+
+
+		  } else { // If he is not logged in
+		    struct login_request * lr = (struct login_request *) payload_c;
+		    if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
+		      // Send invalid state with error code = 1;
+		      unsigned char ivstate[8];
+		      createinvalidstate(1,ivstate);
+		      int bytes_sent = send(i, ivstate,INVALID_STATE_SIZE,0);
+		      if (bytes_sent < 0){
+			perror("send failed");
+			abort();
+		      }
+		    } else {
+		      FD_SET(i,&login); // Log him in
+
+		      Player * newplayer = process_login_request(i,fdmax,login,lr->name,mylist);
+		      
+		      if (!fdnamemap[i]){ fdnamemap[i] = malloc(sizeof(char)*11);}
+		      strcpy(fdnamemap[i],lr->name);
+		      strcpy(newplayer->name,fdnamemap[i]);
+		      Node * node = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
+		      node->datum = newplayer;
+		      node->next = NULL;
+		      if(mylist->head == NULL){
+			mylist->head = node;
+			mylist->tail = node;
+		      }else {
+			mylist->tail->next = node;
+			mylist->tail = node;
+		      }
+		    }
+		    printMap(fdnamemap);
+		  }
 
 		} else if(hdr->msgtype == MOVE){ // MOVE
-		  printf("Got a move message\n");
-		  struct move * m = (struct move *) payload_c;
-		  char * name = getName(i,fdnamemap);
-		  printf("Sender:%s\n", name);
-		  process_move(listener,i,fdmax,master,name,m->direction,mylist);
+		  if (!FD_ISSET(i,&login)){ // if not login,
+		    // Send invalid state
+		    unsigned char ivstate[INVALID_STATE_SIZE];
+		    createinvalidstate(0,ivstate);
+		    int bytes_sent = send(i, ivstate,INVALID_STATE_SIZE,0);
+		    if (bytes_sent < 0){
+		      perror("send failed");
+		      abort();
+		    }
+
+
+		  } else { // If logged in, good to proceed
+		    struct move * m = (struct move *) payload_c;
+		    int direction = m->direction;
+		    Player * player = findPlayer(fdnamemap[i],mylist);
+		    if(player){
+		      stats(player);
+		      if(direction==NORTH){
+			player->x -= 3;
+			player->x %= 100;
+		      }else if(direction==SOUTH){
+			player->x += 3;
+			player->x %= 100;
+		      }else if(direction==WEST){
+			player->y -= 3;
+			player->x %= 100;
+		      }else if(direction==EAST){
+			player->y += 3;
+			player->x %= 100;
+		      }
+		    
+		      unsigned char mntosent[MOVE_NOTIFY_SIZE];
+		      createmovenotify(fdnamemap[i],
+				       player->hp,
+				       player->exp,
+				       player->x,
+				       player->y,
+				       mntosent);
+		      printMessage(mntosent,MOVE_NOTIFY_SIZE);
+		      broadcast(login,i,fdmax,mntosent,MOVE_NOTIFY_SIZE);
+		    }
+		  }
 
 
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
-		  printf("We got an attack");
 		  struct attack * attackPayload = (struct attack *) payload_c;
-		  char * attacker = getName(i,fdnamemap);
+		  char * attacker = fdnamemap[i];
 		  char * victim = attackPayload->victimname;
-		  process_attack(listener,
-				 i,
+		  process_attack(i,
 				 fdmax,
-				 master,
+				 login,
 				 attacker,
 				 victim,
 				 mylist);
 		} else if(hdr->msgtype == SPEAK){ // SPEAK
-		  printf("We got a speak");
+		  struct speak * speakPayload = (struct speak *) payload_c;
+		  int msglen = strlen(payload_c)+1+10+HEADER_LENGTH;
+		  int totallen;
+		  if((msglen+1)%4){
+		    totallen = msglen + (4 - msglen%4);
+		  } else {
+		    totallen = msglen;
+		  }
+		  unsigned char spktosent[totallen];
+		  createspeaknotify(fdnamemap[i],payload_c,totallen,spktosent);
+		  printMessage(spktosent,totallen);
+		  broadcast(login,i,fdmax,spktosent,totallen);
+
 		} else if(hdr->msgtype == LOGOUT){ 
-		  printf("We got a logout");
-		  char * name = getName(i,fdnamemap);
-		  process_logout(listener,
-				 i,
-				 fdmax,
-				 master,
-				 name,
-				 mylist);
+		  Player * player = findPlayer(fdnamemap[i],mylist);
+		  if(player){
+		    removePlayer(fdnamemap[i],mylist);
+		    
+		    FILE *file = fopen(fdnamemap[i],"w+");
+		    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		    fclose(file);
+		    
+		    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		    createlogoutnotify(fdnamemap[i],lntosent);
+		    FD_CLR(i,&login);
+		    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		    FD_CLR(i,&master);
+		    close(i);
+		    
+		    // Clean up the buffer
+		    free(fdnamemap[i]);
+		    fdnamemap[i] = NULL;
+		  }
 		} else {
 		  printf("We got nothing");
 		}
@@ -267,6 +379,5 @@ int main(int argc, char* argv[]){
 	}
       }
     }
-    printf("5 seconds... look ma' no blocking\n");
   }
 }
