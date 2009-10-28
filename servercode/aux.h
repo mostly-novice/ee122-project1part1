@@ -2,13 +2,22 @@ int isVisible(int x1, int y1, int x2, int y2){
   return (abs(x1 - x2)<=5 && abs(y1 - y2)<=5);
 }
 
-int writeToFile(Player* player){
-    FILE *fd = fopen(player->name,"w+");
-    if(fd){
-	fprintf(fd,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-	fclose(fd);
+int isnameinmap(char*name,char**fdnamemap){
+  int i;
+  for(i = 0; i < 22; i++){
+    if(fdnamemap[i]){
+      if(strcmp(name,fdnamemap[i])==0){
 	return 1;
+      }
     }
+  }
+  return 0;
+}
+
+int writeToFile(Player* player){
+    FILE *file = fopen(player->name,"w+");
+    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+    fclose(file);
     return 0;
 }
 
@@ -20,14 +29,14 @@ void printStat(){
   printf("\n");
 }
 
-void printMap(char * map[]){
-  printf("Printing Map");
+void printMap(char ** fdnamemap){
+  printf("Printing Map\n");
   int i;
-  for(i=2; i< 5; i++){
-    if(map[i]){
-      printf("sock:%s - name:%s\n", i,map[i]);
+  for(i=2; i< 20; i++){
+    if(fdnamemap[i]){
+      printf("sock:%d - name:%s\n",i,fdnamemap[i]);
     } else {
-       printf("sock:%s - name:NULL\n", i);
+      printf("sock:%d - name:NULL\n",i);
     }
   }
 }

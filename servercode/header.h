@@ -61,6 +61,11 @@ struct speak_notify {
   unsigned char * msg;
 }__attribute__((packed));
 
+struct logout_notify {
+  unsigned char name[10];
+  unsigned char padding[2];
+}__attribute__((packed));
+
 struct invalid_state {
   unsigned char error_code;
 }__attribute__((packed));

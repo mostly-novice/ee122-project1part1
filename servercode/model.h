@@ -38,15 +38,11 @@ void printPlayers(LinkedList * list){
   printf("---------------------\n");
 }
 
-void * addPlayer(Player * player, LinkedList * list){
-  
-}
-
-Node * findPlayer(char * name, LinkedList * list){
+Player * findPlayer(char * name, LinkedList * list){
   Node * p;
   for(p = list->head; p != NULL; p = p->next){
     if (strcmp(p->datum->name,name)==0){
-      return p;
+      return p->datum;
     }
   }
   return NULL;
@@ -118,13 +114,14 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
 }
 
 void addPlayer(Player * newplayer, LinkedList * list){
-	if(list->head == NULL)	// This is the first player
-	{
-		list->head = list->tail = newplayer;
-
-	}else
-	{
-		list->tail->next = newplayer;
-		list->tail = newplayer;
-	}
+  Node * node = (Node*) malloc(sizeof(Node)); // TODO: remember to free this
+  node->datum = newplayer;
+  node->next = NULL;
+  if(list->head == NULL){
+    list->head = node;
+    list->tail = node;
+  }else {
+    list->tail->next = node;
+    list->tail = node;
+  }
 }
