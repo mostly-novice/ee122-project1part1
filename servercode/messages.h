@@ -163,9 +163,9 @@ static inline int check_player_message(const char *message)
 
 
 static inline int check_malformed_header(int version, int len, int msgtype){
-  if(version != 4) on_malformed_message_from_server();
-  if(len%4 != 0) on_malformed_message_from_server();
-  if(msgtype<0 || msgtype>0xb) on_malformed_message_from_server();
+  if(version != 4) return -1;
+  if(len%4 != 0) return -1;
+  if(msgtype<0 || msgtype>0xb) return -1;
 }
 
 static inline int check_malformed_stats(int x, int y, int hp, int exp){
