@@ -79,6 +79,7 @@ int main(int argc, char* argv[]){
     bufferd->desire_length = HEADER_LENGTH;
     bufferd->buffer_size = 0;
     bufferd->buffer = NULL;
+    fdbuffermap[k] = bufferd;
   }
 
 
@@ -158,22 +159,23 @@ int main(int argc, char* argv[]){
 	  }
 
 	} else { // If someone has data
-
+	  
+	  printf("Someone has data");
 	  unsigned char read_buffer[4096];
 	  int expected_data_len = sizeof(read_buffer);
 	  unsigned char *p = (char*) read_buffer; // Introduce a new pointer
 	  int offset = 0;
 
 	  bufferdata * bufferd = fdbuffermap[i];
-	  char * buffer = bufferd->buffer;
-	  int buffer_size = bufferd->buffer_size;
-	  int flag = bufferd->flag;
-	  int desire_length = bufferd->desire_length;
 
 	  unsigned char header_c[HEADER_LENGTH];
 	  struct header * hdr;
 
 	  int read_bytes = recv(i,read_buffer,expected_data_len, 0);
+
+	  printf("read_buffer: ");
+	  printMessage(read_buffer,20);
+	  printf("bufferd->desire_length: %d\n",bufferd->desire_length);
 	  if (read_bytes <= 0){
 	    // got error or connection closed by client
 	    if(read_bytes == 0){
@@ -202,8 +204,6 @@ int main(int argc, char* argv[]){
 
 
 	  } else {
-	    // we got some data from a client
-	    // Handling incoming data
 	    bufferd->buffer = realloc(bufferd->buffer,sizeof(bufferd->buffer)+read_bytes);
 	    memcpy(bufferd->buffer,read_buffer,read_bytes);
 	    bufferd->buffer_size += read_bytes;
@@ -216,7 +216,8 @@ int main(int argc, char* argv[]){
 
 		hdr = (struct header *) header_c;
 
-		if (check_malformed_header(hdr->version,hdr->len,hdr->msgtype)){
+		// Checking for Malform Package
+		if (!check_malformed_header(hdr->version,hdr->len,hdr->msgtype)){
 		  printf("The header is malformed.\n");
 		  bufferdata * toberemoved = fdbuffermap[i];
 
