@@ -125,7 +125,6 @@ int process_speak(char * broadcaster,char*message){
 
 int process_logout(int sock,
 		   int fdmax,
-		   fd_set master,
 		   char * name,
 		   LinkedList * mylist){
 }
@@ -142,9 +141,5 @@ int updateHP(LinkedList * mylist){
     printf("updating %s's hp\n",i->datum->name);
     i->datum->hp = i->datum->hp + 1;
   }
-
-}
-
-void handle_exception(bufferdata** fdbuffermap, char **fdnamemap, LinkedList *mylist, int sock, ){
 
 }
