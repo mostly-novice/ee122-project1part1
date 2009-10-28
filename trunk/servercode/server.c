@@ -350,11 +350,13 @@ int main(int argc, char* argv[]){
 		    struct speak * speakPayload = (struct speak *) payload_c;
 		    int msglen = strlen(payload_c)+1+10+HEADER_LENGTH;
 		    int totallen;
-		    if((msglen+1)%4){
+		    if(msglen%4){
 		      totallen = msglen + (4 - msglen%4);
 		    } else {
 		      totallen = msglen;
 		    }
+
+		    printf("totallength:%d msglen:%d\n",totallen,msglen);
 		    unsigned char spktosent[totallen];
 		    createspeaknotify(fdnamemap[i],payload_c,totallen,spktosent);
 		    printMessage(spktosent,totallen);
