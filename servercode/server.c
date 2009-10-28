@@ -235,9 +235,6 @@ int main(int argc, char* argv[]){
 		    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 		    createlogoutnotify(fdnamemap[i],lntosent);
 		    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-
-		    // Clean up the buffer
-		    printf("Cleaning up the buffers\n");
 		    free(fdnamemap[i]);
 		    fdnamemap[i] = NULL;
 		  }
@@ -262,7 +259,6 @@ int main(int argc, char* argv[]){
 		printMessage(hdr,4);
 		printMessage(payload_c,ntohs(hdr->len));
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
-
 		  if (FD_ISSET(i,&login)){
 		    // Send invalid state with error code = 1
 		    unsigned char ivstate[8];
@@ -272,17 +268,36 @@ int main(int argc, char* argv[]){
 		      perror("send failed");
 		      abort();
 		    }
-
-
 		  } else { // If he is not logged in
 		    struct login_request * lr = (struct login_request *) payload_c;
-		    // check if name is valid
-		    if( (check_player_name(lr->name)) == 0 ){
-			handle_exception();
+
+		    // Check if name is good
+		    if(check_player_name(lr->name)==0){
+		      bufferdata * toberemoved = fdbuffermap[i];
+		      //free(toberemoved->buffer);
+		      //free(toberemoved);
+		      // Closing socket
+		      close(i);
+		      FD_CLR(i,&login);
+		      FD_CLR(i,&master);
+		      Player * player = findPlayer(fdnamemap[i],mylist);
+		      if(player){
+			removePlayer(fdnamemap[i],mylist);
+			FILE *file = fopen(fdnamemap[i],"w+");
+			fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			fclose(file);
+			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			createlogoutnotify(fdnamemap[i],lntosent);
+			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			free(fdnamemap[i]);
+		      }
+		      fdnamemap[i] = NULL;
+		      break;
 		    }
+
+		    // Check if the name is already used
 		    if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
 		      Player * newplayer = process_login_request(1,i,fdmax,login,lr->name,mylist);
-
 		    } else {
 		      FD_SET(i,&login); // Log him in
 		      Player * newplayer = process_login_request(0,i,fdmax,login,lr->name,mylist);
@@ -313,8 +328,6 @@ int main(int argc, char* argv[]){
 		      perror("send failed");
 		      abort();
 		    }
-
-
 		  } else { // If logged in, good to proceed
 		    struct move * m = (struct move *) payload_c;
 		    int direction = m->direction;
@@ -411,6 +424,28 @@ int main(int argc, char* argv[]){
 		    }
 		  } else {
 		    struct speak * speakPayload = (struct speak *) payload_c;
+		    if(check_player_message(payload_c)==0){
+		      bufferdata * toberemoved = fdbuffermap[i];
+		      //free(toberemoved->buffer);
+		      //free(toberemoved);
+		      // Closing socket
+		      close(i);
+		      FD_CLR(i,&login);
+		      FD_CLR(i,&master);
+		      Player * player = findPlayer(fdnamemap[i],mylist);
+		      if(player){
+			removePlayer(fdnamemap[i],mylist);
+			FILE *file = fopen(fdnamemap[i],"w+");
+			fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			fclose(file);
+			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			createlogoutnotify(fdnamemap[i],lntosent);
+			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			free(fdnamemap[i]);
+		      }
+		      fdnamemap[i] = NULL;
+		      break;
+		    }
 		    int msglen = strlen(payload_c)+1+10+HEADER_LENGTH;
 		    int totallen;
 		    if(msglen%4){
