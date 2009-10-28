@@ -146,6 +146,36 @@ int process_logout(int sock,
 		   LinkedList * mylist){
 }
 
+int processError(int i,
+		 fd_set login,
+		 fd_set master,
+		 LinkedList * mylist,
+		 char ** fdnamemap,
+		 bufferdata ** fdbuffermap,
+		 int fdmax){
+  close(i);
+  FD_CLR(i,&login);
+  FD_CLR(i,&master);
+  Player * player = findPlayer(fdnamemap[i],mylist);
+  if(player){
+    removePlayer(fdnamemap[i],mylist);
+    FILE *file = fopen(fdnamemap[i],"w+");
+    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+    fclose(file);
+    
+    // Broadcast to other clients
+    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+    createlogoutnotify(fdnamemap[i],lntosent);
+    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+    
+  } else {
+    fprintf(stderr, "THIS SHOULD NEVER HAPPEN\n");
+    exit(-1);
+  }
+  cleanNameMap(fdnamemap,i);
+  cleanBuffer(fdbuffermap,i);
+}
+
 int process_invalid_state(char payload_c[]){
 }
 

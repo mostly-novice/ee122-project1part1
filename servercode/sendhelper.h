@@ -172,7 +172,7 @@ int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expe
   for(i=0; i<fdmax+1;i++){
     //printf("Is socket %d logged in? %d\n",i,FD_ISSET(i,&login));
     if (FD_ISSET(i,&login)){
-      printf("Sending: ");
+      printf("Sending to sock %d:", i);
       printMessage(tosent,expected);
       int bytes_sent = send(i, tosent,expected,0);
       if (bytes_sent < 0) perror("send failed");
@@ -186,7 +186,7 @@ int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expe
  * expected: is the size you expected
  */
 int unicast(int sock, unsigned char * tosent, int expected){
-  printf("Sending(unicast)...");
+  printf("Sending(unicast)...:");
   printMessage(tosent,expected);
   int bytes_sent = send(sock, tosent,expected,0);
   if (bytes_sent < 0){
