@@ -217,32 +217,26 @@ int main(int argc, char* argv[]){
 		hdr = (struct header *) header_c;
 
 		// Checking for Malform Package
-		if (!check_malformed_header(hdr->version,hdr->len,hdr->msgtype)){
+		if (check_malformed_header(hdr->version,hdr->len,hdr->msgtype) < 0){
 		  printf("The header is malformed.\n");
 		  bufferdata * toberemoved = fdbuffermap[i];
-
 		  // Freeing
-		  free(toberemoved->buffer);
-		  free(toberemoved);
-
+		  //free(toberemoved->buffer);
+		  //free(toberemoved);
 		  // Closing socket
 		  close(i);
 		  FD_CLR(i,&login);
 		  FD_CLR(i,&master);
-
 		  // Perform logging out
 		  Player * player = findPlayer(fdnamemap[i],mylist);
 		  if(player){
 		    removePlayer(fdnamemap[i],mylist);
-		    
 		    FILE *file = fopen(fdnamemap[i],"w+");
 		    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
 		    fclose(file);
-		    
 		    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 		    createlogoutnotify(fdnamemap[i],lntosent);
 		    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-		    
 		    // Clean up the buffer
 		    free(fdnamemap[i]);
 		    fdnamemap[i] = NULL;
