@@ -404,6 +404,12 @@ def ee122_test_move(server, clients):
     """Move command test"""
     client1, client2 = clients
     # Injects commands.
+    print 'login %s\n' % s_players[0]
+    print 'login %s\n' % s_players[1]
+    print 'move north %s\n' % s_players[0]
+    print 'move south %s\n' % s_players[0]
+    print 'move east %s\n' % s_players[0]
+    print 'move west %s\n' % s_players[0]
     client1.stdin.write('login %s\n' % s_players[0])
     client2.stdin.write('login %s\n' % s_players[1])
     sleep(s_time_allowance)
