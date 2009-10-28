@@ -163,9 +163,19 @@ static inline int check_player_message(const char *message)
 
 
 static inline int check_malformed_header(int version, int len, int msgtype){
-  if(version != 4) return -1;
-  if(len%4 != 0) return -1;
-  if(msgtype<0 || msgtype>0xb) return -1;
+  if(version != 4){
+    printf("Version is invalid - %d", version);
+    return -1;
+  }
+
+  if(len%4 != 0 || len > 260){
+    printf("Len is invalid - %d", len);
+    return -1;
+  }
+  if(msgtype<0 || msgtype>0xb){
+    printf("Msgtype is invalid - %d", msgtype);
+    return -1; 
+  }
   return 1;
 }
 
@@ -195,8 +205,14 @@ static inline int check_malformed_attack(char*name1,char*name2,char damage, int 
 }
 
 static inline int check_malformed_speak(char*name,char*msg){
-  if (!check_player_name(name)) on_malformed_message_from_server();
-  if (!check_player_message(msg)) on_malformed_message_from_server();
+  if (!check_player_name(name)){
+    printf("Malformed Speak: bad name\n");
+    return -1;
+  }
+  if (!check_player_message(msg)){
+    printf("Malformed Speak: bad msg\n");
+    return -1;
+  }
   return 0;
 }
 

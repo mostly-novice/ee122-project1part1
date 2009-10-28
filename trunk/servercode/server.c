@@ -217,15 +217,12 @@ int main(int argc, char* argv[]){
 		hdr = (struct header *) header_c;
 
 		// Checking for Malform Package
-		if (check_malformed_header(hdr->version,hdr->len,hdr->msgtype) < 0){
+		if (check_malformed_header(hdr->version,ntohs(hdr->len),hdr->msgtype) < 0){
 		  printf("The header is malformed.\n");
 		  bufferdata * toberemoved = fdbuffermap[i];
-
-		  // Freeing
 		  //free(toberemoved->buffer);
 		  //free(toberemoved);
 		  // Closing socket
-
 		  close(i);
 		  FD_CLR(i,&login);
 		  FD_CLR(i,&master);
@@ -332,6 +329,34 @@ int main(int argc, char* argv[]){
 		      }else if(direction==EAST){
 			player->x += 3;
 			player->x = (100+player->x) % 100;
+		      } else {
+			printf("The direction is malformed.\n");
+			bufferdata * toberemoved = fdbuffermap[i];
+			//free(toberemoved->buffer);
+			//free(toberemoved);
+			// Closing socket
+			close(i);
+			FD_CLR(i,&login);
+			FD_CLR(i,&master);
+			Player * player = findPlayer(fdnamemap[i],mylist);
+			if(player){
+			  removePlayer(fdnamemap[i],mylist);
+			  FILE *file = fopen(fdnamemap[i],"w+");
+			  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			  fclose(file);
+			  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			  createlogoutnotify(fdnamemap[i],lntosent);
+			  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			  
+			  // Clean up the buffer
+			  printf("Cleaning up the buffers\n");
+			  free(fdnamemap[i]);
+			  fdnamemap[i] = NULL;
+			} else {
+			  fprintf(stderr, "THIS SHOULD NEVER HAPPEN\n");
+			  exit(-1);
+			}
+			break;
 		      }
 		    
 		      unsigned char mntosent[MOVE_NOTIFY_SIZE];
