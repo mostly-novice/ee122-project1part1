@@ -124,6 +124,8 @@ int main(int argc, char* argv[]){
   fdmax = listener;
 
   while(1){ // main accept() log
+      tv.sec=5;
+      tv.usec=0;
     readfds = master; // copy it
     if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
@@ -294,10 +296,10 @@ int main(int argc, char* argv[]){
 			player->x %= 100;
 		      }else if(direction==WEST){
 			player->y -= 3;
-			player->x %= 100;
+			player->y %= 100;
 		      }else if(direction==EAST){
 			player->y += 3;
-			player->x %= 100;
+			player->y %= 100;
 		      }
 		    
 		      unsigned char mntosent[MOVE_NOTIFY_SIZE];
