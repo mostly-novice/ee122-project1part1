@@ -314,29 +314,52 @@ int main(int argc, char* argv[]){
 
 
 		} else if(hdr->msgtype == ATTACK){ // ATTACK
-		  struct attack * attackPayload = (struct attack *) payload_c;
-		  char * attacker = fdnamemap[i];
-		  char * victim = attackPayload->victimname;
-		  process_attack(i,
-				 fdmax,
-				 login,
-				 attacker,
-				 victim,
-				 mylist);
-		} else if(hdr->msgtype == SPEAK){ // SPEAK
-		  struct speak * speakPayload = (struct speak *) payload_c;
-		  int msglen = strlen(payload_c)+1+10+HEADER_LENGTH;
-		  int totallen;
-		  if((msglen+1)%4){
-		    totallen = msglen + (4 - msglen%4);
-		  } else {
-		    totallen = msglen;
-		  }
-		  unsigned char spktosent[totallen];
-		  createspeaknotify(fdnamemap[i],payload_c,totallen,spktosent);
-		  printMessage(spktosent,totallen);
-		  broadcast(login,i,fdmax,spktosent,totallen);
+		  if (!FD_ISSET(i,&login)){ // if not login,
+		    // Send invalid state
+		    unsigned char ivstate[INVALID_STATE_SIZE];
+		    createinvalidstate(0,ivstate);
+		    int bytes_sent = send(i, ivstate,INVALID_STATE_SIZE,0);
+		    if (bytes_sent < 0){
+		      perror("send failed");
+		      abort();
+		    }
 
+
+		  } else {
+		    struct attack * attackPayload = (struct attack *) payload_c;
+		    char * attacker = fdnamemap[i];
+		    char * victim = attackPayload->victimname;
+		    process_attack(i,
+				   fdmax,
+				   login,
+				   attacker,
+				   victim,
+				   mylist);
+		  }
+		} else if(hdr->msgtype == SPEAK){ // SPEAK
+		  if (!FD_ISSET(i,&login)){ // if not login,
+		    // Send invalid state
+		    unsigned char ivstate[INVALID_STATE_SIZE];
+		    createinvalidstate(0,ivstate);
+		    int bytes_sent = send(i, ivstate,INVALID_STATE_SIZE,0);
+		    if (bytes_sent < 0){
+		      perror("send failed");
+		      abort();
+		    }
+		  } else {
+		    struct speak * speakPayload = (struct speak *) payload_c;
+		    int msglen = strlen(payload_c)+1+10+HEADER_LENGTH;
+		    int totallen;
+		    if((msglen+1)%4){
+		      totallen = msglen + (4 - msglen%4);
+		    } else {
+		      totallen = msglen;
+		    }
+		    unsigned char spktosent[totallen];
+		    createspeaknotify(fdnamemap[i],payload_c,totallen,spktosent);
+		    printMessage(spktosent,totallen);
+		    broadcast(login,i,fdmax,spktosent,totallen);
+		  }
 		} else if(hdr->msgtype == LOGOUT){ 
 		  Player * player = findPlayer(fdnamemap[i],mylist);
 		  if(player){
