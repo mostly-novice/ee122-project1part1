@@ -22,6 +22,14 @@
 
 #define MAX_CONNECTION 20
 
+typedef struct buffer{
+  int flag;
+  int desire_length;
+  int buffer_size;
+  char * buffer;
+} bufferdata;
+
+
 // Debugging variables
 int mc; // malloc counter
 int fc; // free counter
@@ -61,10 +69,16 @@ int main(int argc, char* argv[]){
   fd_set login;
   int fdmax;
   
-  char ** fdnamemap = malloc(sizeof(*fdnamemap)*20);
+  char ** fdnamemap = malloc(sizeof(*fdnamemap)*25);
+  bufferdata ** fdbuffermap = malloc(sizeof(*fdbuffermap)*25);
   int k;
   for(k=0; k<22; ++k ){
     fdnamemap[k] = NULL;
+    bufferdata * bufferd = (bufferdata *) malloc(sizeof(bufferdata));
+    bufferd->flag = HEADER;
+    bufferd->desire_length = HEADER_LENGTH;
+    bufferd->buffer_size = 0;
+    bufferd->buffer = NULL;
   }
 
 
@@ -109,18 +123,14 @@ int main(int argc, char* argv[]){
     perror("Bind failed");
     abort();
   }
-
   if (listen(listener,MAX_CONNECTION)){
     perror("listen");
     abort();
   }
-
   FD_ZERO(&master);
   FD_ZERO(&readfds);
   FD_ZERO(&login);
-
   FD_SET(listener,&master);
-
   fdmax = listener;
 
   while(1){ // main accept() log
@@ -154,10 +164,12 @@ int main(int argc, char* argv[]){
 	  unsigned char *p = (char*) read_buffer; // Introduce a new pointer
 	  int offset = 0;
 
-	  char * buffer;
-	  int buffer_size = 0;
-	  int flag = 0;
-	  int desire_length = 4;
+	  bufferdata * bufferd = fdbuffermap[i];
+	  char * buffer = bufferd->buffer;
+	  int buffer_size = bufferd->buffer_size;
+	  int flag = bufferd->flag;
+	  int desire_length = bufferd->desire_length;
+
 	  unsigned char header_c[HEADER_LENGTH];
 	  struct header * hdr;
 
@@ -192,33 +204,63 @@ int main(int argc, char* argv[]){
 	  } else {
 	    // we got some data from a client
 	    // Handling incoming data
-	    buffer = realloc(buffer,buffer_size+read_bytes);
-	    memcpy(buffer,read_buffer,read_bytes);
-	    buffer_size += read_bytes;
+	    bufferd->buffer = realloc(bufferd->buffer,sizeof(bufferd->buffer)+read_bytes);
+	    memcpy(bufferd->buffer,read_buffer,read_bytes);
+	    bufferd->buffer_size += read_bytes;
 	
-	    while (buffer_size >= desire_length){
-	      if(flag == HEADER){
+	    while (bufferd->buffer_size >= bufferd->desire_length){
+	      if(bufferd->flag == HEADER){
 		// Copy the header
 		int j;
-		for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
+		for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(bufferd->buffer+j);}
 
 		hdr = (struct header *) header_c;
 
-		check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
+		if (check_malformed_header(hdr->version,hdr->len,hdr->msgtype)){
+		  printf("The header is malformed.\n");
+		  bufferdata * toberemoved = fdbuffermap[i];
+
+		  // Freeing
+		  free(toberemoved->buffer);
+		  free(toberemoved);
+
+		  // Closing socket
+		  close(i);
+		  FD_CLR(i,&login);
+		  FD_CLR(i,&master);
+
+		  // Perform logging out
+		  Player * player = findPlayer(fdnamemap[i],mylist);
+		  if(player){
+		    removePlayer(fdnamemap[i],mylist);
+		    
+		    FILE *file = fopen(fdnamemap[i],"w+");
+		    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		    fclose(file);
+		    
+		    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		    createlogoutnotify(fdnamemap[i],lntosent);
+		    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		    
+		    // Clean up the buffer
+		    free(fdnamemap[i]);
+		    fdnamemap[i] = NULL;
+		  }
+		}
 
 		// Move the pointers
-		char * temp = (char*) malloc(sizeof(char)*(buffer_size-HEADER_LENGTH));
-		memcpy(temp,buffer+4,buffer_size-4);
-		free(buffer);
-		buffer = temp;
-		buffer_size -= 4;
-		desire_length = ntohs(hdr->len)-4;
-		flag = PAYLOAD;
+		char * temp = (char*) malloc(sizeof(char)*(bufferd->buffer_size-HEADER_LENGTH));
+		memcpy(temp,bufferd->buffer+4,bufferd->buffer_size-4);
+		free(bufferd->buffer);
+		bufferd->buffer = temp;
+		bufferd->buffer_size -= HEADER_LENGTH;
+		bufferd->desire_length = ntohs(hdr->len)-4;
+		bufferd->flag = PAYLOAD;
 
 	      } else { // Payload
-		char payload_c[desire_length];
+		char payload_c[bufferd->desire_length];
 		int j;
-		for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
+		for(j = 0; j < bufferd->desire_length; j++){ payload_c[j] = *(bufferd->buffer+j);}
 		printf("Received: ");
 		printMessage(hdr,4);
 		printMessage(payload_c,ntohs(hdr->len));
@@ -287,10 +329,10 @@ int main(int argc, char* argv[]){
 		    if(player){
 		      stats(player);
 		      if(direction==NORTH){
-			player->y += 3;
+			player->y -= 3;
 			player->y = (100+player->y) % 100;
 		      }else if(direction==SOUTH){
-			player->y -= 3;
+			player->y += 3;
 			player->y = (100+player->y) % 100;
 		      }else if(direction==WEST){
 			player->x -= 3;
@@ -389,15 +431,15 @@ int main(int argc, char* argv[]){
 		//} // End of processing reply
 
 		// Move the pointers
-		char * temp = (char*) malloc(sizeof(char)*(buffer_size-desire_length));
-		memcpy(temp,buffer+desire_length,buffer_size-desire_length);
+		char * temp = (char*) malloc(sizeof(char)*(bufferd->buffer_size-bufferd->desire_length));
+		memcpy(temp,bufferd->buffer+bufferd->desire_length,bufferd->buffer_size-bufferd->desire_length);
 
-		free(buffer);
-		buffer = temp;
-		buffer_size -= desire_length;
+		free(bufferd->buffer);
+		bufferd->buffer = temp;
+		bufferd->buffer_size -= bufferd->desire_length;
 
-		desire_length = HEADER_LENGTH;
-		flag = HEADER;
+		bufferd->desire_length = HEADER_LENGTH;
+		bufferd->flag = HEADER;
 	      } // end of handling payload
 	    } // End of while
 	  }
