@@ -157,9 +157,14 @@ int main(int argc, char* argv[]){
   FD_SET(listener,&master);
   fdmax = listener;
 
-  while(1){ // main accept() log
-    tv.tv_sec = 0;
-    tv.tv_usec = 500;
+  int timeout = 1;
+  time_t lasttime = time(NULL);
+
+  while(1){ // main accept() lo
+    time_t currenttime = time(NULL);
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    timeout = 1;
     readfds = master; // copy it
     if (select(fdmax+1,&readfds,NULL,NULL,&tv) == -1){
       perror("select");
@@ -170,6 +175,11 @@ int main(int argc, char* argv[]){
     int i;
     for(i=0; i<= fdmax; i++){
       if (FD_ISSET(i,&readfds)){
+	if (currenttime-lasttime < 5){
+	  timeout = 0;
+	}
+	
+
 	if (i==listener){ // NEW CONNECTION COMING IN
 	  printf("Received a new connection\n");
 	  // handle new connection
@@ -250,15 +260,11 @@ int main(int argc, char* argv[]){
 		// Copy the header
 		int j;
 		for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(bufferd->buffer+j);}
-		//printf("We got 1 complete header:\n");
-		//printMessage(header_c,HEADER_LENGTH);
 		
 		// Cast it to a header
 		hdr = (struct header *) header_c;
-
 		// Checking for Malform Package
 		if (check_malformed_header(hdr->version,ntohs(hdr->len),hdr->msgtype) < 0){
-
 		  // Disconnect the header
 		  close(i);
 
@@ -321,7 +327,6 @@ int main(int argc, char* argv[]){
 
 		    // Check if name is good
 		    if(check_player_name(lr->name)==0){
-		      printf("Bad name\n");
 		      // Closing socket
 		      close(i);
 		      FD_CLR(i,&login);
@@ -389,7 +394,12 @@ int main(int argc, char* argv[]){
 		  } else { // If logged in, good to proceed
 		    struct move * m = (struct move *) payload_c;
 		    int direction = m->direction;
-		    Player * player = findPlayer(fdnamemap[i],mylist);
+		    Player * player;                     
+		    if (fdnamemap[i]) {
+		      player = findPlayer(fdnamemap[i],mylist);
+		    } else {
+		      fprintf(stderr, "THIS SHOULD NEVER HAPPEN\n");
+		    }
 		    if(player){
 		      stats(player);
 		      if(direction==NORTH){
@@ -531,63 +541,63 @@ int main(int argc, char* argv[]){
 		    broadcast(login,i,fdmax,spktosent,totallen);
 		  }
 		} else if(hdr->msgtype == LOGOUT){ 
-		  Player * player = findPlayer(fdnamemap[i],mylist);
-		  if(fdnamemap[i]){
-		    if(player){
-		      close(i);
-		      FD_CLR(i,&login);
-		      FD_CLR(i,&master);
-		      
-		      printf("Removing player from data structure.\n");
-		      removePlayer(fdnamemap[i],mylist);
-		      
-		      FILE *file = fopen(fdnamemap[i],"w+");
-		      fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		      fclose(file);
-		      
-		      // Send a logout request to other clients
-		      printf("Send out login request.\n");
-		      unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-		      createlogoutnotify(fdnamemap[i],lntosent);
-		      broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-		      
-		      // Clean up the buffer
-		      printf("Cleaning up buffer\n");
-		      cleanNameMap(fdnamemap,i);
-		      printf("Done\n");
-		      
-		      break;
-		    } else {
-		      fprintf(stderr, "Internal data structure error");
+		  if (!FD_ISSET(i,&login)){ // if not login,
+		    // Send invalid state
+		    unsigned char ivstate[INVALID_STATE_SIZE];
+		    createinvalidstate(0,ivstate);
+		    int bytes_sent = send(i, ivstate,INVALID_STATE_SIZE,0);
+		    if (bytes_sent < 0){
+		      perror("send failed");
+		      abort();
 		    }
-		  }
 
-		  cleanBuffer(fdbuffermap,i);
+		  } else {
+		    if(fdnamemap[i]){
+		      Player * player = findPlayer(fdnamemap[i],mylist);
+		      if(player){
+			close(i);
+			FD_CLR(i,&login);
+			FD_CLR(i,&master);
+			removePlayer(fdnamemap[i],mylist);
+			FILE *file = fopen(fdnamemap[i],"w+");
+			fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			fclose(file);
+			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			createlogoutnotify(fdnamemap[i],lntosent);
+			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			cleanNameMap(fdnamemap,i);
+			break;
+		      } else {
+			fprintf(stderr, "Internal data structure error");
+		      }
+		    }
+
+		    cleanBuffer(fdbuffermap,i);
+		  }
 		} else {
 		  printf("We got nothing");
 		}
-
 		// Move the pointers
 		printf("Moving the pointer");
 		char * temp = (char*) malloc(sizeof(char)*(bufferd->buffer_size-bufferd->desire_length));
 		memcpy(temp,bufferd->buffer+bufferd->desire_length,bufferd->buffer_size-bufferd->desire_length);
-
 		free(bufferd->buffer);
 		bufferd->buffer = temp;
 		bufferd->buffer_size -= bufferd->desire_length;
-
-		printf("buffer after completing payload processing:\n");
-		printMessage(bufferd->buffer,bufferd->buffer_size);
-
 		bufferd->desire_length = HEADER_LENGTH;
 		bufferd->flag = HEADER;
-		printf("Done processing pointers\n");
 	      } // end of handling payload
 	    } // End of while
 	  }
 	}
       }
     }
-    //updateHP(mylist);
+
+    if (timeout){
+      printf("Yay\n");
+      updateHP(mylist);
+      lasttime = currenttime;
+    }
+
   }
 }
