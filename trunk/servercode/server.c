@@ -162,7 +162,7 @@ int main(int argc, char* argv[]){
 
   while(1){ // main accept() lo
     time_t currenttime = time(NULL);
-    tv.tv_sec = 1;
+    tv.tv_sec = 5;
     tv.tv_usec = 0;
     timeout = 1;
     readfds = master; // copy it
@@ -421,8 +421,8 @@ int main(int argc, char* argv[]){
 			close(i);
 			FD_CLR(i,&login);
 			FD_CLR(i,&master);
-			Player * player = findPlayer(fdnamemap[i],mylist);
 			if(fdnamemap[i]){
+			  Player * player = findPlayer(fdnamemap[i],mylist);
 			  if(player){
 			    removePlayer(fdnamemap[i],mylist);
 			    FILE *file = fopen(fdnamemap[i],"w+");
@@ -472,8 +472,30 @@ int main(int argc, char* argv[]){
 		    // #TODO: HAVE TO CHECK FOR THE NAME
 		    struct attack * attackPayload = (struct attack *) payload_c;
 		    char * victim = attackPayload->victimname;
-		    if (!check_player_name(victim)){
-		      processError(i,login,master,mylist,fdnamemap,fdbuffermap,fdmax);
+		    if (check_player_name(victim) == 0){
+		      close(i);
+		      FD_CLR(i,&login);
+		      FD_CLR(i,&master);
+		      if(fdnamemap[i]){
+			Player * player = findPlayer(fdnamemap[i],mylist);
+			  if(player){
+			    removePlayer(fdnamemap[i],mylist);
+			    FILE *file = fopen(fdnamemap[i],"w+");
+			    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			    fclose(file);
+			    
+			    // Broadcast to other clients
+			    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			    createlogoutnotify(fdnamemap[i],lntosent);
+			    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			    
+			  } else {
+			    fprintf(stderr, "THIS SHOULD NEVER HAPPEN\n");
+			    exit(-1);
+			  }
+			  cleanNameMap(fdnamemap,i);
+		      }
+		      cleanBuffer(fdbuffermap,i);
 		      break;
 		    }
 		    char * attacker;
@@ -594,7 +616,6 @@ int main(int argc, char* argv[]){
     }
 
     if (timeout){
-      printf("Yay\n");
       updateHP(mylist);
       lasttime = currenttime;
     }
