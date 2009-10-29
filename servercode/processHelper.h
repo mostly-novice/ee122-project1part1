@@ -52,29 +52,33 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
 		   lrtosent);
   unicast(sock,lrtosent,LOGIN_REPLY_SIZE);
 
-  Node * p;
-  for(p = activeList->head; p != NULL; p = p->next){
-    if (strcmp(p->datum->name,newplayer->name)!=0){
-      printf("Sending to:%s\n",newplayer->name);
-      Player * player = p->datum;
-      createmovenotify(player->name,
-		       player->hp,
-		       player->exp,
-		       player->x,
-		       player->y,
-		       mntosent);
-      unicast(sock,mntosent,MOVE_NOTIFY_SIZE);
+  if(errorcode == 0){
+    Node * p;
+    for(p = activeList->head; p != NULL; p = p->next){
+      if (strcmp(p->datum->name,newplayer->name)!=0){
+	printf("Sending to:%s\n",newplayer->name);
+	Player * player = p->datum;
+	createmovenotify(player->name,
+			 player->hp,
+			 player->exp,
+			 player->x,
+			 player->y,
+			 mntosent);
+	unicast(sock,mntosent,MOVE_NOTIFY_SIZE);
+      }
     }
-  }
   
-  memset(mntosent,0,MOVE_NOTIFY_SIZE);
-  createmovenotify(name,newplayer->hp,
-		   newplayer->exp,
-		   newplayer->x,
-		   newplayer->y,
-		   mntosent);
-  broadcast(login,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
-  return newplayer;
+    memset(mntosent,0,MOVE_NOTIFY_SIZE);
+    createmovenotify(name,newplayer->hp,
+		     newplayer->exp,
+		     newplayer->x,
+		     newplayer->y,
+		     mntosent);
+    broadcast(login,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
+    return newplayer;
+  } else {
+    return NULL;
+  }
 }
 int process_move(int listener,
 		 int sock,
@@ -185,8 +189,7 @@ int updateHP(LinkedList * mylist){
   }
   Node * i;
   for(i=mylist->head; i!=NULL;i=i->next){
-    printf("updating %s's hp\n",i->datum->name);
     i->datum->hp = i->datum->hp + 1;
+    return 1;
   }
-
 }
