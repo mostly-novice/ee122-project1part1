@@ -326,9 +326,8 @@ int main(int argc, char* argv[]){
 			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 			createlogoutnotify(fdnamemap[i],lntosent);
 			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			cleanNameMap(fdnamemap,i);
 		      }
-		      
-		      cleanNameMap(fdnamemap,i);
 		      cleanBuffer(fdbuffermap,i);
 
 		      break;
@@ -489,6 +488,8 @@ int main(int argc, char* argv[]){
 			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 			createlogoutnotify(fdnamemap[i],lntosent);
 			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		      } else {
+			fprintf(stderr,"Internal data structure error\n");
 		      }
 
 		      // Cleaning up
