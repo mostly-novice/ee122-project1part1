@@ -171,16 +171,16 @@ static inline int check_player_message(const char *message)
 
 static inline int check_malformed_header(int version, int len, int msgtype){
   if(version != 4){
-    printf("Version is invalid - %d", version);
+    printf("Version is invalid - %d\n", version);
     return -1;
   }
 
   if(len%4 != 0 || len > 260){
-    printf("Len is invalid - %d", len);
+    printf("Len is invalid - %d\n", len);
     return -1;
   }
   if(msgtype<0 || msgtype>0xb){
-    printf("Msgtype is invalid - %d", msgtype);
+    printf("Msgtype is invalid - %d\n", msgtype);
     return -1; 
   }
   return 1;

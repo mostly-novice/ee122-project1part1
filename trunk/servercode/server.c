@@ -46,19 +46,21 @@ void cleanBuffer(bufferdata ** fdbuffermap,int i){
   if(fdbuffermap[i]){
     if(fdbuffermap[i]->buffer)free(fdbuffermap[i]->buffer);
     free(fdbuffermap[i]);
-  }
 
-  bufferdata * bufferd = (bufferdata *) malloc(sizeof(bufferdata));
-  bufferd->flag = HEADER;
-  bufferd->desire_length = HEADER_LENGTH;
-  bufferd->buffer_size = 0;
-  bufferd->buffer = NULL;
-  fdbuffermap[i] = bufferd;
+    bufferdata * bufferd = (bufferdata *) malloc(sizeof(bufferdata));
+    bufferd->flag = HEADER;
+    bufferd->desire_length = HEADER_LENGTH;
+    bufferd->buffer_size = 0;
+    bufferd->buffer = NULL;
+    fdbuffermap[i] = bufferd;
+  }
 }
 
 void cleanNameMap(char ** fdnamemap,int i){
-  free(fdnamemap[i]);
-  fdnamemap[i] = 0;
+  if(fdnamemap[i]){
+    free(fdnamemap[i]);
+    fdnamemap[i] = 0;
+  }
 }
 
 #include "model.h"
@@ -199,29 +201,33 @@ int main(int argc, char* argv[]){
 	    // got error or connection closed by client
 	    if(read_bytes == 0){
 	      printf("Socket %d hung up\n",i);
-	      Player * player = findPlayer(fdnamemap[i],mylist);
-	      if(player){
-		printf("%s just left the game.\n",player->name);
-		removePlayer(fdnamemap[i],mylist);
-		FILE *file = fopen(fdnamemap[i],"w+");
-		fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		fclose(file);
-		unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-		createlogoutnotify(fdnamemap[i],lntosent);
-		broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+	      if (fdnamemap[i]){
+		Player * player = findPlayer(fdnamemap[i],mylist);
+		if(player){
+		  printf("%s just left the game.\n",player->name);
+		  removePlayer(fdnamemap[i],mylist);
+		  FILE *file = fopen(fdnamemap[i],"w+");
+		  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		  fclose(file);
+		  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		  createlogoutnotify(fdnamemap[i],lntosent);
+		  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		}
 	      }
 	    } else { // read_bytes == -1
 	      printf("Socket %d hung up\n",i);
-	      Player * player = findPlayer(fdnamemap[i],mylist);
-	      if(player){
-		printf("%s just left the game.\n",player->name);
-		removePlayer(fdnamemap[i],mylist);
-		FILE *file = fopen(fdnamemap[i],"w+");
-		fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		fclose(file);
-		unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-		createlogoutnotify(fdnamemap[i],lntosent);
-		broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+	      if (fdnamemap[i]){
+		Player * player = findPlayer(fdnamemap[i],mylist);
+		if(player){
+		  printf("%s just left the game.\n",player->name);
+		  removePlayer(fdnamemap[i],mylist);
+		  FILE *file = fopen(fdnamemap[i],"w+");
+		  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		  fclose(file);
+		  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		  createlogoutnotify(fdnamemap[i],lntosent);
+		  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		}
 	      }
 	    }
 	    cleanNameMap(fdnamemap,i);
@@ -252,24 +258,30 @@ int main(int argc, char* argv[]){
 
 		// Checking for Malform Package
 		if (check_malformed_header(hdr->version,ntohs(hdr->len),hdr->msgtype) < 0){
+
+		  // Disconnect the header
 		  close(i);
+
+		  // Clear out the 
 		  FD_CLR(i,&login);
 		  FD_CLR(i,&master);
-		  Player * player = findPlayer(fdnamemap[i],mylist);
-		  if(player){
-		    removePlayer(fdnamemap[i],mylist);
-		    FILE *file = fopen(fdnamemap[i],"w+");
-		    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		    fclose(file);
-		    
-		    // Broadcast the logout to other clients
-		    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-		    createlogoutnotify(fdnamemap[i],lntosent);
-		    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 
+		  if(fdnamemap[i]){
+		    Player * player = findPlayer(fdnamemap[i],mylist);
+		    if(player){
+		      removePlayer(fdnamemap[i],mylist);
+		      FILE *file = fopen(fdnamemap[i],"w+");
+		      fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		      fclose(file);
+		      
+		      // Broadcast the logout to other clients
+		      unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		      createlogoutnotify(fdnamemap[i],lntosent);
+		      broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		    }
 		    cleanNameMap(fdnamemap,i);
-		    cleanBuffer(fdbuffermap,i);
 		  }
+		  if(fdbuffermap) cleanBuffer(fdbuffermap,i);
 		  break;
 		} else { // If not malform
 		  
@@ -315,7 +327,7 @@ int main(int argc, char* argv[]){
 		      FD_CLR(i,&login);
 		      FD_CLR(i,&master);
 
-		      Player * player = findPlayer(fdnamemap[i],mylist);
+		      Player * player = findPlayer(lr->name,mylist);
 		      if(player){
 			removePlayer(fdnamemap[i],mylist);
 			FILE *file = fopen(fdnamemap[i],"w+");
@@ -400,22 +412,24 @@ int main(int argc, char* argv[]){
 			FD_CLR(i,&login);
 			FD_CLR(i,&master);
 			Player * player = findPlayer(fdnamemap[i],mylist);
-			if(player){
-			  removePlayer(fdnamemap[i],mylist);
-			  FILE *file = fopen(fdnamemap[i],"w+");
-			  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			  fclose(file);
-
-			  // Broadcast to other clients
-			  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-			  createlogoutnotify(fdnamemap[i],lntosent);
-			  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-
-			} else {
-			  fprintf(stderr, "THIS SHOULD NEVER HAPPEN\n");
-			  exit(-1);
+			if(fdnamemap[i]){
+			  if(player){
+			    removePlayer(fdnamemap[i],mylist);
+			    FILE *file = fopen(fdnamemap[i],"w+");
+			    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			    fclose(file);
+			    
+			    // Broadcast to other clients
+			    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			    createlogoutnotify(fdnamemap[i],lntosent);
+			    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			    
+			  } else {
+			    fprintf(stderr, "THIS SHOULD NEVER HAPPEN\n");
+			    exit(-1);
+			  }
+			  cleanNameMap(fdnamemap,i);
 			}
-			cleanNameMap(fdnamemap,i);
 			cleanBuffer(fdbuffermap,i);
 			break;
 		      }
@@ -452,7 +466,12 @@ int main(int argc, char* argv[]){
 		      processError(i,login,master,mylist,fdnamemap,fdbuffermap,fdmax);
 		      break;
 		    }
-		    char * attacker = fdnamemap[i];
+		    char * attacker;
+		    if (fdnamemap[i]){
+		      attacker = fdnamemap[i];
+		    } else {
+		      fprintf(stderr,"server.c - attack - THIS SHOULD NEVER HAPPEN.\n");
+		    }
 		    process_attack(i,
 				   fdmax,
 				   login,
@@ -478,22 +497,24 @@ int main(int argc, char* argv[]){
 		      close(i);
 		      FD_CLR(i,&login);
 		      FD_CLR(i,&master);
-		      Player * player = findPlayer(fdnamemap[i],mylist);
-		      if(player){
-			removePlayer(fdnamemap[i],mylist);
-			FILE *file = fopen(fdnamemap[i],"w+");
-			fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			fclose(file);
-
-			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-			createlogoutnotify(fdnamemap[i],lntosent);
-			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-		      } else {
-			fprintf(stderr,"Internal data structure error\n");
+		      if(fdnamemap[i]){
+			Player * player = findPlayer(fdnamemap[i],mylist);
+			if(player){
+			  removePlayer(fdnamemap[i],mylist);
+			  FILE *file = fopen(fdnamemap[i],"w+");
+			  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			  fclose(file);
+			  
+			  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			  createlogoutnotify(fdnamemap[i],lntosent);
+			  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			} else {
+			  fprintf(stderr,"Internal data structure error\n");
+			}
+			cleanNameMap(fdnamemap,i);
 		      }
 
 		      // Cleaning up
-		      cleanNameMap(fdnamemap,i);
 		      cleanBuffer(fdbuffermap,i);
 		      break;
 		    }
@@ -511,34 +532,37 @@ int main(int argc, char* argv[]){
 		  }
 		} else if(hdr->msgtype == LOGOUT){ 
 		  Player * player = findPlayer(fdnamemap[i],mylist);
-		  if(player){
-		    close(i);
-		    FD_CLR(i,&login);
-		    FD_CLR(i,&master);
-
-		    printf("Removing player from data structure.\n");
-		    removePlayer(fdnamemap[i],mylist);
-		    
-		    FILE *file = fopen(fdnamemap[i],"w+");
-		    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		    fclose(file);
-		    
-		    // Send a logout request to other clients
-		    printf("Send out login request.\n");
-		    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-		    createlogoutnotify(fdnamemap[i],lntosent);
-		    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-		    
-		    // Clean up the buffer
-		    printf("Cleaning up buffer\n");
-		    cleanNameMap(fdnamemap,i);
-		    cleanBuffer(fdbuffermap,i);
-		    printf("Done\n");
-
-		    break;
-		  } else {
-		    fprintf(stderr, "Internal data structure error");
+		  if(fdnamemap[i]){
+		    if(player){
+		      close(i);
+		      FD_CLR(i,&login);
+		      FD_CLR(i,&master);
+		      
+		      printf("Removing player from data structure.\n");
+		      removePlayer(fdnamemap[i],mylist);
+		      
+		      FILE *file = fopen(fdnamemap[i],"w+");
+		      fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		      fclose(file);
+		      
+		      // Send a logout request to other clients
+		      printf("Send out login request.\n");
+		      unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		      createlogoutnotify(fdnamemap[i],lntosent);
+		      broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+		      
+		      // Clean up the buffer
+		      printf("Cleaning up buffer\n");
+		      cleanNameMap(fdnamemap,i);
+		      printf("Done\n");
+		      
+		      break;
+		    } else {
+		      fprintf(stderr, "Internal data structure error");
+		    }
 		  }
+
+		  cleanBuffer(fdbuffermap,i);
 		} else {
 		  printf("We got nothing");
 		}
