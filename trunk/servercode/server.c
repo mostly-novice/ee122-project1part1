@@ -20,7 +20,7 @@
 #define HEADER 0
 #define PAYLOAD 1
 
-#define MAX_CONNECTION 20
+#define MAX_CONNECTION 30
 
 typedef struct buffer{
   int flag;
@@ -90,10 +90,10 @@ int main(int argc, char* argv[]){
   fd_set login;
   int fdmax;
   
-  char ** fdnamemap = malloc(sizeof(*fdnamemap)*25);
-  bufferdata ** fdbuffermap = malloc(sizeof(*fdbuffermap)*25);
+  char ** fdnamemap = malloc(sizeof(*fdnamemap)*MAX_CONNECTION);
+  bufferdata ** fdbuffermap = malloc(sizeof(*fdbuffermap)*MAX_CONNECTION);
   int k;
-  for(k=0; k<22; ++k ){
+  for(k=0; k<MAX_CONNECTION; ++k ){
     fdnamemap[k] = NULL;
     bufferdata * bufferd = (bufferdata *) malloc(sizeof(bufferdata));
     bufferd->flag = HEADER;
@@ -210,9 +210,19 @@ int main(int argc, char* argv[]){
 		createlogoutnotify(fdnamemap[i],lntosent);
 		broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 	      }
-	    } else {
-	      perror("recv");
-	      abort();
+	    } else { // read_bytes == -1
+	      printf("Socket %d hung up\n",i);
+	      Player * player = findPlayer(fdnamemap[i],mylist);
+	      if(player){
+		printf("%s just left the game.\n",player->name);
+		removePlayer(fdnamemap[i],mylist);
+		FILE *file = fopen(fdnamemap[i],"w+");
+		fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		fclose(file);
+		unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+		createlogoutnotify(fdnamemap[i],lntosent);
+		broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+	      }
 	    }
 	    cleanNameMap(fdnamemap,i);
 	    cleanBuffer(fdbuffermap,i);
@@ -316,9 +326,6 @@ int main(int argc, char* argv[]){
 			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 			createlogoutnotify(fdnamemap[i],lntosent);
 			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
-		      } else {
-			fprintf(stderr,"Internal data structure inconsistencies");
-			exit(-1);
 		      }
 		      
 		      cleanNameMap(fdnamemap,i);
