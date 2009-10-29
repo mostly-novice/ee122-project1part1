@@ -1,0 +1,7 @@
+Name: Phuc Xuan Nguyen
+Login: ee122-cn
+Name: Kevin Friedheim
+Login: ee122-cv
+
+How to compile:
+gcc -w -o server server.c -lsocket -lnsl
