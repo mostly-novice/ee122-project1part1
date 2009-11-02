@@ -7,7 +7,10 @@ struct header {
 // Payload Type
 struct login_request {
   unsigned char name[10];
-  unsigned char padding[2];
+  unsigned int hp;
+  unsigned int exp;
+  unsigned char x;
+  unsigned char y;
 }__attribute__((packed));
 
 struct logout_reply{
@@ -63,9 +66,85 @@ struct speak_notify {
 
 struct logout_notify {
   unsigned char name[10];
-  unsigned char padding[2];
+  unsigned int hp;
+  unsigned int exp;
+  unsigned char x;
+  unsigned char y;
 }__attribute__((packed));
 
 struct invalid_state {
   unsigned char error_code;
 }__attribute__((packed));
+
+struct storage_location_request {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned char name[10];
+    unsigned char padding;
+}__attribute__((packed));
+
+struct storage_location_response {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned int server_ip;
+    unsigned short port;
+    unsigned char paddding;
+}__attribute__((packed));
+
+struct server_area_request {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned char x;
+    unsigned char y;
+    unsigned char paddding;
+}__attribute__((packed));
+
+struct server_area_response {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned int server_ip;
+    unsigned short port;
+    unsigned char max_x;
+    unsigned char max_y;
+    unsigned char min_x;
+    unsigned char min_y;
+    unsigned char paddding;
+}__attribute__((packed));
+
+struct player_state_request {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned char name[10];
+    unsigned char paddding;
+}__attribute__((packed));
+
+struct player_state_response {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned char name[10];
+    unsigned int hp;
+    unsigned int exp;
+    unsigned char x;
+    unsigned char y;
+    unsigned char paddding[3];
+}__attribute__((packed));
+
+struct save_state_request {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned char name[10];
+    unsigned int hp;
+    unsigned int exp;
+    unsigned char x;
+    unsigned char y;
+    unsigned char paddding[3];
+}__attribute__((packed));
+
+struct save_state_response {
+    unsigned char message_type;
+    unsigned int ID;
+    unsigned char error_code;
+    unsigned short padding;
+}__attribute__((packed));
+
+
