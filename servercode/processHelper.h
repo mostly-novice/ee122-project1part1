@@ -15,6 +15,8 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
   // make a new instance of Player
   Player * newplayer = (Player *) malloc(sizeof(Player));
   
+  srand(time(NULL));
+
   // randomize stats
   int hp = 100 + rand()%21;
   int exp = 0;
@@ -36,7 +38,6 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
     FILE * file2 = fopen(name,"w+");
     if(file2 == NULL)	// open a new file with overwrite
       perror("file open");
-    srand(time(NULL));
     
     // Write to file
     fprintf(file2,"%d %d %d %d",newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
@@ -181,6 +182,43 @@ int processError(int i,
 }
 
 int process_invalid_state(char payload_c[]){
+}
+
+// Processing PLAYER_STATE_REQUEST
+int processpsr(char*name){
+  FILE * file = fopen(name,'r');
+  int hp;
+  int exp;
+  char x;
+  char x;
+
+  if(file){ // If this file existed
+    fscanf(file,"%d%d%d%d",&hp,&exp,&x,&y);
+    fclose(file);
+  } else{ // If it doesn't
+    // Randomize the data
+    srand(time(NULL));
+    hp = 100 + rand()%21;
+    exp = 0;
+    x = rand()%100;
+    y = rand()%100;
+
+    // Add this entry to the db
+    FILE * file2 = fopen(name,"w+"); // open a new file with overwrite
+    if(file2 == NULL) perror("file open");
+    
+    // Write to file
+    fprintf(file2,"%d %d %d %d",hp,exp,x,y);
+    fclose(file2);
+  }
+
+  // At this point, we should have all the data to form the PLAYER_STATE_RESPONSE
+  char buffer[PLAYER_STATE_RESPONSE_SIZE];
+  createpsr(name,hp,exp,x,y,buffer);
+  udpunicast(udpsock,targetsin,buffer,PLAYER_STATE_RESPONSE_SIZE);
+}
+
+int process_save_state_request(char*name){
 }
 
 int updateHP(LinkedList * mylist){

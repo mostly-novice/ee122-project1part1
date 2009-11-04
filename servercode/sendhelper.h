@@ -167,6 +167,21 @@ void createinvalidstate(unsigned char error_code, char buffer[]){
   free(payload);
 }
 
+void createpsr(char * name, int hp, int exp, char x, char y, int id,char buffer[]){
+  struct player_state_response * psr = (struct player_state_response *) malloc(sizeof(struct player_state_response));
+
+  psr->message_type = PLAYER_STATE_RESPONSE;
+  psr->id   = htonl(id);
+  psr->name = name;
+  psr->hp   = htonl(hp);
+  psr->exp  = htonl(exp);
+  psr->x    = x;
+  psr->y    = y;
+
+  char * toreturn = (char*) psr;
+  memcpy(buffer,toreturn,PLAYER_STATE_RESPONSE_SIZE);
+}
+
 int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expected){
   int i;
   for(i=0; i<fdmax+1;i++){
@@ -189,6 +204,17 @@ int unicast(int sock, unsigned char * tosent, int expected){
   printf("Sending(unicast)...:");
   printMessage(tosent,expected);
   int bytes_sent = send(sock, tosent,expected,0);
+  if (bytes_sent < 0){
+    perror("send failed");
+    abort();
+  }
+  return 1;
+}
+
+int udpunicast(int udpsock, struct sockaddr_in targetsin, unsigned char * tosent, int expected){
+  printf("Sending(udpunicast)...");
+  printMessage(tosent,expected);
+  int bytes_sent = sendto(udpsock, tosent,expected,0,(struct sockaddr *) &targetsin,sizeof(targetsin));
   if (bytes_sent < 0){
     perror("send failed");
     abort();
