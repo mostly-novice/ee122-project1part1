@@ -184,11 +184,15 @@ int main(int argc, char* argv[]){
   int isLogin = 0;
   char command[80];
   char arg[4000];
+
   // Connection variables
   int udpsock;
   int tcpsock;
+  int serverIP;
+  int serverPort;
   int trackerIP;
   int trackerPort;
+
   int done = 0;
   int status;
   int udpdone = 0;
@@ -201,7 +205,7 @@ int main(int argc, char* argv[]){
   struct sockaddr_in sin;
   memset(&sin, 0, sizeof(sin));
 
-  if(argc < 4){ printf("Usage: ./client -s <server IP address> -p <server port>");}
+  if(argc < 4){ printf("Usage: ./client -s <tracker IP address> -p <tracker port>"); exit(0);}
 
   // Initilizations
   int c;
@@ -217,7 +221,7 @@ int main(int argc, char* argv[]){
       pvalue=optarg;
       break;
     default:
-      printf("Usage: ./client -s <server IP address> -p <server port>");
+      printf("Usage: ./client -s <tracker IP address> -p <tracker port>");
       return 0;
     }
   }
@@ -225,8 +229,9 @@ int main(int argc, char* argv[]){
   trackerIP = svalue;
   trackerPort = atoi(pvalue);
 
+  tcpsock = socket(AF_INET, SOCK_STREAM, 0);
   udpsock = socket(AF_INET, SOCK_DGRAM, 0);
-  if(sock < 0){
+  if(udpsock < 0 || tcp < 0){
     perror("socket() failed\n");
     abort();
   }
@@ -235,16 +240,6 @@ int main(int argc, char* argv[]){
   sin.sin_addr.s_addr = inet_addr(trackerIP);
   sin.sin_port = htons(trackerPort);
 
-  /* if(connect(sock,(struct sockaddr *) &sin, sizeof(sin)) < 0){ */
-/*     perror("client - connect"); */
-/*     freePlayers(mylist); */
-/*     free(self); */
-/*     free(mylist); */
-
-/*     close(sock); */
-/*     on_client_connect_failure(); */
-/*     abort(); */
-/*   } */
   show_prompt();
 
   char * buffer;
@@ -259,8 +254,10 @@ int main(int argc, char* argv[]){
     FD_ZERO(&readfds);
     FD_SET(STDIN, &readfds);
     FD_SET(udpsock, &readfds);
+    FD_SET(tcpsock, &readfds);
 
     if(udpsock>fdmax) fdmax = udpsock;
+    if(tcpsock>fdmax) fdmax = tcpsock;
       
     if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
       perror("select");
@@ -392,29 +389,63 @@ int main(int argc, char* argv[]){
 
 	// Need to send the server the player_state_request
 	struct sockaddr_in sin2;
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = ntohl(slr->server_ip);
-	sin.sin_port = ntohs(slr->udpport);;
+	sin2.sin_family = AF_INET;
+	sin2.sin_addr.s_addr = ntohl(slr->server_ip);
+	sin2.sin_port = ntohs(slr->udpport);;
 	sendpsrequest(udpsock,&sin2,currentID);
+
+
 
       } else if (msgtype == PLAYER_STATE_RESPONSE){
 	struct player_state_response * psr = (struct player_state_response *) read_buffer;
+	// Check whether this data is malformed
+	
+	// Initiate the player states
+	initialize(self,psr->name,psr->hp,psr->exp,psr->x,psr->y);
+
+	// Prepare the data to send the server_area_request
+	sendsarequest(self->x,self->y,udpsock,&sin,currentID);
+
+
+
+
+      } else if (msgtype == SERVER_AREA_RESPONSE){
+	struct server_area_response * sares = (struct server_area_response *) read_buffer;
+	
+	// Check if the data is malformed
+
+	// Set the value for serverIP and serverPort
+	serverIP = ntohl(sares->server_ip);
+	serverPort = ntohs(sares->tcpport);
+
+	struct sockaddr_in tcpsin;
+	tcpsin.sin_family = AF_INET;
+	tcpsin.sin_addr.s_addr = serverIP;
+	tcpsin.sin_port = serverPort;
+
+	// Establish connection
+	if(connect(tcpsock,(struct sockaddr *) &tcpsin, sizeof(tcpsin)) < 0){
+	  perror("client - connect");
+	  freePlayers(mylist);
+	  free(self);
+	  free(mylist);
+	  
+	  close(sock);
+	  on_client_connect_failure();
+	  abort();
+	}
+
+	// WE ARE GOOD TO GO
+
+	
+      } else if (msgtype == SAVE_STATE_RESPONSE){
+	struct player_state_response * ssr = (struct player_state_response *) read_buffer;
 	
 	// Check for duplicates ID
 
 	// Prepare the data to send the server_area_request
 	sendsarequest(udpsock,&sin,currentID);
       }
-
-
-
-
-
-
-
-
-
-
 
 
 
