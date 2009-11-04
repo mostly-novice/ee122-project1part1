@@ -101,7 +101,7 @@ struct server_area_request {
 
 struct server_area_response {
     unsigned char message_type;
-    unsigned int ID;
+    unsigned int id;
     unsigned int server_ip;
     unsigned short port;
     unsigned char max_x;
