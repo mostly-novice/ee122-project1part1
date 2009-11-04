@@ -1,0 +1,20 @@
+# We are going to keep a list of players that are active
+
+# Login_request
+
+# First you check if the guy is login by searching through the active clients
+handleLoginRequest
+If the guy is already logged in:
+    send a invalid state
+else:
+    make a new instance of Player
+    check if the file with that name exists
+    if name does not exist:
+        open a new file
+        randomize stats
+        write stats to the file
+        initialize the player
+    else if name exists:
+        open an existed file
+        read from the file and initialize the player
+        

@@ -1,76 +1,49 @@
-int isVisible(int x1, int y1, int x2, int y2){
-  return (abs(x1 - x2)<=5 && abs(y1 - y2)<=5);
+#include <math.h>
+
+int ceiling(double x){
+  return ((int)x)+1;
 }
 
-int isnameinmap(char*name,char**fdnamemap){
+int initsr(server_record ** sr_array, char * configpath){
+  printf("file:%s\n",configpath);
+  FILE * file = fopen("server.config","r");
+  char server_ip[30];
+  int tcp_port;
+  int udp_port;
+
+  int count = 0;
+  while(fscanf(file,"%s %d %d", server_ip, &tcp_port, &udp_port)!= EOF){   
+    unsigned int a1,a2,a3,a4;
+    unsigned int ip = (a1 << 24)+(a1 << 16)+(a1 << 8)+a4;
+    sscanf(server_ip,"%d.%d.%d.%d",&a1,&a2,&a3,&a4);
+    printf("%x.%x.%x.%x\n",a1,a2,a3,a4);
+    printf("%x\n",ip);
+    server_record * newrecord = (server_record *) malloc(sizeof(server_record));
+    newrecord->ip = ip;
+    newrecord->tcp_port = tcp_port;
+    newrecord->udp_port = udp_port;
+    newrecord->min_y = 0;
+    newrecord->max_y = 99;
+    sr_array[count] = newrecord;
+    count++;
+  }
+
+  printf("count\n");
+
+  // NOTE: This is different than the spec.
   int i;
-  for(i = 0; i < 22; i++){
-    if(fdnamemap[i]){
-      if(strcmp(name,fdnamemap[i])==0){
-	return 1;
-      }
-    }
-  }
-  return 0;
-}
+  for(i=0;i<count;i++){
+    sr_array[i]->min_x = ceiling(99.0/count)*i;
+    sr_array[i]->max_x = ceiling(99.0/count)*(i+1)-1;
 
-int writeToFile(Player* player){
-    FILE *file = fopen(player->name,"w+");
-    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-    fclose(file);
-    return 0;
-}
-
-// Printing out the relevant statistics
-void printStat(){
-  printf("\n");
-  printf("Number of mallocs:%d\n",mc);
-  printf("Number of frees:%d\n",fc);
-  printf("\n");
-}
-
-void printMap(char ** fdnamemap){
-  printf("Printing Map\n");
-  int i;
-  for(i=2; i< 20; i++){
-    if(fdnamemap[i]){
-      printf("sock:%d - name:%s\n",i,fdnamemap[i]);
-    } else {
-      printf("sock:%d - name:NULL\n",i);
-    }
-  }
-}
-
-char* getName(int fd,char*map[]){
-  return map[fd];
-}
-
-void putName(int fd, char * name, char*map[]){
-  char * buffer = (char*) malloc(sizeof(char)*strlen(name));
-  strcpy(buffer,name);
-  map[fd] = buffer;
-}
-
-
-int readstdin(char * command, char * arg){
-  char mystring[300];
-  char * pch;
-
-  setvbuf(stdin,NULL,_IONBF,1024 );
-  fgets(mystring,300,stdin);
-  if(strcmp(mystring,"\n")==0){
-    return 0;
-  }
-  mystring[strlen(mystring)-1] = 0;
-  pch = strtok(mystring," ");
-  strcpy(command,pch);
-
-  pch += strlen(pch);
-
-  while(*(pch)==' ' || *(pch)=='\0'){
-    pch++;
+    /* printf("server_ip:%d\n", sr_array[i]->ip); */
+/*     printf("tcp_port:%d\n", sr_array[i]->tcp_port); */
+/*     printf("udp_port:%d\n", sr_array[i]->udp_port); */
+/*     printf("min_x:%d\n", sr_array[i]->min_x); */
+/*     printf("max_x:%d\n", sr_array[i]->max_x); */
   }
 
-  strcpy(arg, pch);
-  return 1;
+  // Closing the file
+  fclose(file);
+  return count;
 }

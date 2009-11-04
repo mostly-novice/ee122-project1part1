@@ -1,7 +1,13 @@
 #include <stdlib.h>
-#include <time.h>
+#include <stdio.h>
+#include <math.h>
+
+int ceiling(double x){
+  return ((int)x)+1;
+}
 
 int main(){
-  int x = -2;
-  printf("%d\n", (x+100) % 100);
+  double a=6.04;
+  int b = ceiling(a);
+  printf("%d\n",b);
 }

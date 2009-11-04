@@ -12,32 +12,15 @@
 #include "header.h"
 #include "messages.h"
 
-#define STDIN 0
-#define HEADER_LENGTH 4
-#define DIR "users"
-
-// Flags
-#define MSGTYPE 0
-#define PAYLOAD 1
-
-#define MAX_CONNECTION 30
-
 typedef struct sr{
-  char * ip;
-  int tcp_port;
-  int udp_port;
-  char min_x;
-  char max_x;
-  char min_y;
-  char max_y;
+  unsigned int ip;
+  unsigned int tcp_port;
+  unsigned int udp_port;
+  unsigned char min_x;
+  unsigned char max_x;
+  unsigned char min_y;
+  unsigned char max_y;
 } server_record;
-
-typedef struct buffer{
-  int flag;
-  int desire_length;
-  int buffer_size;
-  char * buffer;
-} bufferdata;
 
 void printMessage(char * message, int len){
   int i;
@@ -46,6 +29,9 @@ void printMessage(char * message, int len){
   }
   printf("\n");
 }
+
+#include "sendhelper.h"
+#include "aux.h"
 
 // Hashing function
 unsigned int hash(char*s){
@@ -56,53 +42,23 @@ unsigned int hash(char*s){
   return hashval;
 }
 
-
-// Return the server count
-int initsr(server_record ** sr_array, char * configpath){
-  File * file = fopen(configpath,'r');
-  char server_ip[30];
-  int tcp_port;
-  int udp_port;
-
-  int count = 0;
-  while(fscanf(file,"%s %d %d", server_ip, &tcp_port, &udp_port)){   
-    server_record * newrecord = (server_record *) malloc(sizeof(server_record));
-    newrecord->ip = (char*)malloc(sizeof(char)*(strlen(server_ip)+1));
-    strcpy(newrecord->ip,server_ip);
-    newrecord->tcp_port = tcp_port;
-    newrecord->udp_port = udp_port;
-    newrecord->min_y = 0;
-    newrecord->max_y = 99;
-    sr_array[count] = server_record;
-    count++;
-  }
-
-  // NOTE: This is different than the spec.
-  int i;
-  for(i=0;i<count;i++){
-    sr_array[count]->min_x = ceil(99/count)*i;
-    sr_array[count]->max_x = ceil(99/count)*(i+1)-1;
-  }
-
-  // Closing the file
-  fclose(file);
-  return count;
-}
-
 int findServer(char x, int server_count){
   return x/(100/server_count);
 }
 
 int main(int argc, char* argv[]){
   struct sockaddr_in client_sin;
-  Node * p;
   int listener;
   int myport;
   int done = 0;
   int status;
   char * configpath;
-  server_record ** sr_array;
+  server_record ** sr_array = malloc(sizeof(*sr_array)*100);
   int server_count;
+
+  fd_set master;
+  fd_set readfds;
+  int fdmax;
 
   struct sockaddr_in sin;
   memset(&sin, 0, sizeof(sin));
@@ -111,15 +67,17 @@ int main(int argc, char* argv[]){
 
   // Initilizations
   int c;
-  char* pvalue=NULL;
 
   // TODO: Implemnting the getopt
-
   configpath = argv[2];
   myport = atoi(argv[4]);
 
+  printf("Configpath:%s\n",configpath);
+  printf("myport:%d\n",myport);
+
   // Initialize the server record data structure
   server_count = initsr(sr_array,configpath);
+  printf("Done with initializing\n");
   
   if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){ perror('setvbuf');}
 
@@ -147,6 +105,7 @@ int main(int argc, char* argv[]){
   FD_ZERO(&readfds);
   FD_SET(listener,&master);
   fdmax = listener;
+  int sin_len;
 
   while(1){ // main accept() lo
     readfds = master; // copy it
@@ -161,7 +120,13 @@ int main(int argc, char* argv[]){
 	if (i==listener){ // NEW CONNECTION COMING IN
 	} else { // If someone has data
 	  unsigned char read_buffer[4096];
-	  int read_bytes = recvfrom(i,read_buffer,expected_data_len, 0);
+	  int read_bytes = recvfrom(i,
+				    read_buffer,
+				    4096,
+				    0,
+				    (struct sockaddr*)&sin,
+				    &sin_len);
+	  
 	  if (read_bytes < 0){
 	    perror("Tracker - Recvfrom Failed - read_bytes return -1\n");
 	    close(i); // bye!
@@ -169,7 +134,7 @@ int main(int argc, char* argv[]){
 	    char msgtype = read_buffer[0];
 
 	    if(msgtype==STORAGE_LOCATION_REQUEST){
-	      storage_location_request * slr = (storage_location_request*) read_buffer;
+	      struct storage_location_request * slr = (struct storage_location_request*) read_buffer;
 	      // Find the server record
 
 	      // TODO: Check the ID
@@ -181,9 +146,9 @@ int main(int argc, char* argv[]){
 	      server_record * sr = sr_array[srindex];
 	      char slrespond[STORAGE_LOCATION_RESPONSE_SIZE];
 
-	      createslrespond(server_record,ntohl(slr->id),slrepond);
+	      createslrespond(sr,ntohl(slr->id),slrespond);
 
-	      int sent_byte = sendto(sock,
+	      int sent_bytes = sendto(i,
 				     slrespond,
 				     STORAGE_LOCATION_RESPONSE_SIZE,
 				     0,
@@ -196,15 +161,15 @@ int main(int argc, char* argv[]){
 	      }
 
 	    } else if(msgtype==SERVER_AREA_REQUEST){
-	      server_area_request * sareq = (server_area_request*) read_buffer;
+	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
 	      // TODO: Check if the value in the package is valid
-	      int server_id = findServer(sareq->x);
+	      int server_id = findServer(sareq->x,server_count);
 	      server_record * sr = sr_array[server_id];
 
 	      char sarespond[STORAGE_LOCATION_RESPONSE_SIZE];
-	      createsarespond(sr,id,sarespond);
+	      createsarespond(sr,ntohl(sareq->id),sarespond);
 
-	      int sent_byte = sendto(sock,
+	      int sent_bytes = sendto(i,
 				     sarespond,
 				     SERVER_AREA_RESPONSE_SIZE,
 				     0,

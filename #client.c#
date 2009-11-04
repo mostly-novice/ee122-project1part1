@@ -262,6 +262,11 @@ int main(int argc, char* argv[]){
       perror("select");
       return 0;
     }
+
+    /*
+     * Handling stdin
+     *
+     */
     
     if(FD_ISSET(STDIN, &readfds)){
       if(!readstdin(command,arg)){
@@ -279,7 +284,6 @@ int main(int argc, char* argv[]){
 	
 	strcpy(self->name,arg);
 
-	handleudplogin(name,udpsock);
 	int status = handlelogin(name,sock);
 
       } else if(strcmp(command,"move") == 0){ // MOVE
@@ -467,3 +471,18 @@ int main(int argc, char* argv[]){
   }
 }
 
+command> login a
+command> Welcome to the tiny world of warcraft.
+command> a: location=(86,77), HP=101, EXP=0
+command> b: aaaaaaa
+command> Player b has left the tiny world of warcraft.
+command>
+
+
+command> login a
+command> Welcome to the tiny world of warcraft.
+command> a: location=(86,77), HP=101, EXP=0
+command> b: this will be shown
+command> Player b has left the tiny world of warcraft.
+
+! Exception test (truncated last packet): FAIL w/ an exception:  # LOGOUT_NOTIFY is not 1. Got 0.
