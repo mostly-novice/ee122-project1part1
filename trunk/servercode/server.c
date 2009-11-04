@@ -82,9 +82,14 @@ int main(int argc, char* argv[]){
   // Connection variables
   // Keep track of the list of sockets
   int listener;
+  int udplistener;
   int myport;
+  int myudpport;
   int done = 0;
   int status;
+
+  struct sockaddr_in udpsin;
+  int sin_len;
 
   // Select
   fd_set readfds;
@@ -110,7 +115,7 @@ int main(int argc, char* argv[]){
   memset(&sin, 0, sizeof(sin));
 
   printf("%d\n",argc);
-  if(argc != 3){ printf("Usage: ./server -p <server port>");  exit(0);}
+  if(argc != 3){ printf("Usage: ./server -t <server TCP port> -u <server UDP port");  exit(0);}
 
   // Initilizations
   int c;
@@ -120,17 +125,20 @@ int main(int argc, char* argv[]){
   chdir(DIR);
 
   myport = atoi(argv[2]);
+  myudpport = atoi(argv[4]);
 
   if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){
     perror('setvbuf');
   }
 
   listener = socket(AF_INET, SOCK_STREAM, 0);
+  udplistener = socket(AF_INET, SOCK_DGRAM, 0);
   if(listener < 0){
     perror("socket() failed\n");
     abort();
   } else {
     printf("Listenning sock is ready. Sock: %d\n",listener);
+    printf("UDP Listenning sock is ready. Sock: %d\n",udplistener);
   }
 
   sin.sin_family = AF_INET;
@@ -179,8 +187,23 @@ int main(int argc, char* argv[]){
 	  timeout = 0;
 	}
 	
+	if (i==udpsock){ // NEW DATA COMING FROM UDPPORT
+	  unsigned char udp_read_buffer[4096];
+	  int expected_data_len = sizeof(read_buffer);
+	  int read_bytes = recvfrom(udplistener,udp_read_buffer,expected_data_len,0,
+				    (struct sockaddr*)&udpsin,&sin_len);
+	  if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
+	    struct player_state_request * psr = (struct player_state_request * psr) udp_read_buffer;
+	    
+	    // Check to see whether this is malformed
 
-	if (i==listener){ // NEW CONNECTION COMING IN
+	    processpsr(psr->name);
+	  } else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){
+	  }
+
+
+
+	} else if (i==listener){ // NEW CONNECTION COMING IN
 	  printf("Received a new connection\n");
 	  // handle new connection
 	  int addr_len = sizeof(client_sin);
