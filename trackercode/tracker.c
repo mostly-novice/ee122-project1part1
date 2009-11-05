@@ -61,7 +61,9 @@ int main(int argc, char* argv[]){
   int fdmax;
 
   struct sockaddr_in sin;
+  struct sockaddr_in clientsin;
   memset(&sin, 0, sizeof(sin));
+  memset(&clientsin, 0, sizeof(client_sin));
 
   if(argc != 5){ printf("Usage: ./tracker -f <configuration file> -p port");  exit(0);}
 
@@ -87,6 +89,8 @@ int main(int argc, char* argv[]){
   } else { printf("Listenning sock is ready. Sock: %d\n",listener);}
   
   sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
+  sin.sin_port = htons(myport);
 
   int optval = 1;
   if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
@@ -99,12 +103,11 @@ int main(int argc, char* argv[]){
     abort();
   }
    FD_ZERO(&readfds);
+   FD_SET(listener,&readfds);
+   fdmax = listener;
 
   while(1){ // main accept() lo
- 
-    FD_SET(listener,&readfds);
-    fdmax = listener;
-    int sin_len;
+    int client_sin_len;
     int selVal = (select(fdmax+1,&readfds,NULL,NULL,NULL));
     printf("selval:%d",selVal);
     //if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
@@ -123,8 +126,8 @@ int main(int argc, char* argv[]){
 				    read_buffer,
 				    sizeof(read_buffer),
 				    0,
-				    (struct sockaddr*)&sin,
-				    &sin_len);
+				    (struct sockaddr*)&clientsin,
+				    &client_sin_len);
 	  
 //	  FD_CLR(i,&master);
 	  if (read_bytes < 0){
@@ -154,8 +157,8 @@ int main(int argc, char* argv[]){
 				     slrespond,
 				     STORAGE_LOCATION_RESPONSE_SIZE,
 				     0,
-				     (struct sockaddr*)&sin,
-				     sizeof(sin));
+				     (struct sockaddr*)&clientsin,
+				     sizeof(clientsin));
 
 	      if(sent_bytes < 0){
 		perror("Tracker - sendto failed: Handling storage location request");
