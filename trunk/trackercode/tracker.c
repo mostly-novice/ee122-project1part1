@@ -98,33 +98,35 @@ int main(int argc, char* argv[]){
     perror("Bind failed");
     abort();
   }
-
-  FD_ZERO(&master);
-  FD_ZERO(&readfds);
-  FD_SET(listener,&master);
-  fdmax = listener;
-  int sin_len;
+   FD_ZERO(&readfds);
 
   while(1){ // main accept() lo
-    readfds = master; // copy it
-    if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
-      perror("select");
-      exit(-1);
-    }
+ 
+    FD_SET(listener,&readfds);
+    fdmax = listener;
+    int sin_len;
+    int selVal = (select(fdmax+1,&readfds,NULL,NULL,NULL));
+    printf("selval:%d",selVal);
+    //if (select(fdmax+1,&readfds,NULL,NULL,NULL) == -1){
+    //  perror("select");
+    //  exit(-1);
+    //}
     // run through the existing connections looking for data to read
     int i;
     for(i=0; i<= fdmax; i++){
       if (FD_ISSET(i,&readfds)){
-	if (i==listener){ // NEW CONNECTION COMING IN
+	if (i!=listener){ // NEW CONNECTION COMING IN
 	} else { // If someone has data
+	  printf("We got a connection\n");
 	  unsigned char read_buffer[4096];
 	  int read_bytes = recvfrom(i,
 				    read_buffer,
-				    4096,
+				    sizeof(read_buffer),
 				    0,
 				    (struct sockaddr*)&sin,
 				    &sin_len);
 	  
+//	  FD_CLR(i,&master);
 	  if (read_bytes < 0){
 	    perror("Tracker - Recvfrom Failed - read_bytes return -1\n");
 	    close(i); // bye!
@@ -139,6 +141,8 @@ int main(int argc, char* argv[]){
 	      char * name = slr->name;
 	      int hashval = hash(name);
 	      int srindex = hashval % server_count; // The index of "DB" server
+
+	      printf("name: %s\nhashval:%d\nsrindex:%d\n",name,hashval,srindex);
 
 	      // TODO: Check if name is malformed
 	      server_record * sr = sr_array[srindex];
