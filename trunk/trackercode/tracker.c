@@ -47,7 +47,6 @@ int findServer(char x, int server_count){
 }
 
 int main(int argc, char* argv[]){
-  struct sockaddr_in client_sin;
   int listener;
   int myport;
   int done = 0;
@@ -61,9 +60,10 @@ int main(int argc, char* argv[]){
   int fdmax;
 
   struct sockaddr_in sin;
-  struct sockaddr_in clientsin;
+  struct sockaddr_in clientaddr;
+  int sin_len;
   memset(&sin, 0, sizeof(sin));
-  memset(&clientsin, 0, sizeof(client_sin));
+  
 
   if(argc != 5){ printf("Usage: ./tracker -f <configuration file> -p port");  exit(0);}
 
@@ -102,9 +102,11 @@ int main(int argc, char* argv[]){
     perror("Bind failed");
     abort();
   }
-   FD_ZERO(&readfds);
-   FD_SET(listener,&readfds);
-   fdmax = listener;
+  FD_ZERO(&readfds);
+  FD_SET(listener,&readfds);
+  fdmax = listener;
+  
+  int size = sizeof(clientaddr);
 
   while(1){ // main accept() lo
     int client_sin_len;
@@ -126,10 +128,11 @@ int main(int argc, char* argv[]){
 				    read_buffer,
 				    sizeof(read_buffer),
 				    0,
-				    (struct sockaddr*)&clientsin,
-				    &client_sin_len);
-	  
-//	  FD_CLR(i,&master);
+				    (struct sockaddr *) &clientaddr,
+				    &sin_len);
+
+	  printf("clientaddr:%d", clientaddr.sin_addr.s_addr);
+	  printf("sin_len: %d", sin_len);	 
 	  if (read_bytes < 0){
 	    perror("Tracker - Recvfrom Failed - read_bytes return -1\n");
 	    close(i); // bye!
@@ -153,12 +156,14 @@ int main(int argc, char* argv[]){
 
 	      createslrespond(sr,ntohl(slr->id),slrespond);
 
+	      printMessage(slrespond,STORAGE_LOCATION_RESPONSE_SIZE);
+
 	      int sent_bytes = sendto(i,
-				     slrespond,
-				     STORAGE_LOCATION_RESPONSE_SIZE,
-				     0,
-				     (struct sockaddr*)&clientsin,
-				     sizeof(clientsin));
+				      slrespond,
+				      STORAGE_LOCATION_RESPONSE_SIZE,
+				      0,
+				      (struct sockaddr*)&clientaddr,
+				      sizeof(clientaddr));
 
 	      if(sent_bytes < 0){
 		perror("Tracker - sendto failed: Handling storage location request");
