@@ -1,4 +1,4 @@
-// Server code
+// Tracker code
 #include <stdio.h>
 #include <stdlib.h>
 #include "constants.h"
@@ -14,8 +14,8 @@
 
 typedef struct sr{
   unsigned int ip;
-  unsigned int tcp_port;
-  unsigned int udp_port;
+  unsigned short tcp_port;
+  unsigned short udp_port;
   unsigned char min_x;
   unsigned char max_x;
   unsigned char min_y;
@@ -87,8 +87,6 @@ int main(int argc, char* argv[]){
   } else { printf("Listenning sock is ready. Sock: %d\n",listener);}
   
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
-  sin.sin_port = htons(myport);
 
   int optval = 1;
   if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
@@ -140,7 +138,7 @@ int main(int argc, char* argv[]){
 	      // TODO: Check the ID
 	      char * name = slr->name;
 	      int hashval = hash(name);
-	      int srindex = hashval % server_count;
+	      int srindex = hashval % server_count; // The index of "DB" server
 
 	      // TODO: Check if name is malformed
 	      server_record * sr = sr_array[srindex];

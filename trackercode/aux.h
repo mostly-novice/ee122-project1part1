@@ -12,14 +12,11 @@ int initsr(server_record ** sr_array, char * configpath){
   int udp_port;
 
   int count = 0;
+  // Read every line in file
   while(fscanf(file,"%s %d %d", server_ip, &tcp_port, &udp_port)!= EOF){   
-    unsigned int a1,a2,a3,a4;
-    unsigned int ip = (a1 << 24)+(a1 << 16)+(a1 << 8)+a4;
-    sscanf(server_ip,"%d.%d.%d.%d",&a1,&a2,&a3,&a4);
-    printf("%x.%x.%x.%x\n",a1,a2,a3,a4);
-    printf("%x\n",ip);
+    printf("%d\n",inet_addr(server_ip));
     server_record * newrecord = (server_record *) malloc(sizeof(server_record));
-    newrecord->ip = ip;
+    newrecord->ip = inet_addr(server_ip);
     newrecord->tcp_port = tcp_port;
     newrecord->udp_port = udp_port;
     newrecord->min_y = 0;
