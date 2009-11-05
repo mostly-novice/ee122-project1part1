@@ -88,7 +88,6 @@ struct storage_location_response {
     unsigned int id;
     unsigned int server_ip;
     unsigned short udpport;
-    unsigned char paddding;
 }__attribute__((packed));
 
 struct server_area_request {
