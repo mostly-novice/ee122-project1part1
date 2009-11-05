@@ -7,7 +7,16 @@ void createslrespond(server_record * sr, int id, char buffer[]){
   slr->server_ip = sr->ip;
   slr->udpport = htons(sr->udp_port);
 
-  buffer = (unsigned char *) slr;
+  printf("id:%d\n",sr->ip);
+  printf("port:%d\n",sr->udp_port);
+
+  unsigned char*tosent = (unsigned char *) slr;
+  printMessage(slr,STORAGE_LOCATION_RESPONSE);
+  int i;
+  for(i = 0; i < STORAGE_LOCATION_RESPONSE;i++){
+    buffer[i] = tosent[i];
+  }
+  free(slr);
 }
 
 // Creating the SERVER_AREA_RESPONSE package
