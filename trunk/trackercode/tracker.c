@@ -130,9 +130,6 @@ int main(int argc, char* argv[]){
 				    0,
 				    (struct sockaddr *) &clientaddr,
 				    &sin_len);
-
-	  printf("clientaddr:%d", clientaddr.sin_addr.s_addr);
-	  printf("sin_len: %d", sin_len);	 
 	  if (read_bytes < 0){
 	    perror("Tracker - Recvfrom Failed - read_bytes return -1\n");
 	    close(i); // bye!
@@ -147,8 +144,6 @@ int main(int argc, char* argv[]){
 	      char * name = slr->name;
 	      int hashval = hash(name);
 	      int srindex = hashval % server_count; // The index of "DB" server
-
-	      printf("name: %s\nhashval:%d\nsrindex:%d\n",name,hashval,srindex);
 
 	      // TODO: Check if name is malformed
 	      server_record * sr = sr_array[srindex];
@@ -171,20 +166,22 @@ int main(int argc, char* argv[]){
 	      }
 
 	    } else if(msgtype==SERVER_AREA_REQUEST){
+	      printMessage(read_buffer,SERVER_AREA_REQUEST_SIZE);
 	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
 	      // TODO: Check if the value in the package is valid
 	      int server_id = findServer(sareq->x,server_count);
 	      server_record * sr = sr_array[server_id];
 
 	      char sarespond[STORAGE_LOCATION_RESPONSE_SIZE];
+	      memset(&sarespond,0,STORAGE_LOCATION_RESPONSE_SIZE);
 	      createsarespond(sr,ntohl(sareq->id),sarespond);
 
 	      int sent_bytes = sendto(i,
-				     sarespond,
-				     SERVER_AREA_RESPONSE_SIZE,
-				     0,
-				     (struct sockaddr*)&sin,
-				     sizeof(sin));
+				      sarespond,
+				      SERVER_AREA_RESPONSE_SIZE,
+				      0,
+				      (struct sockaddr*)&clientaddr,
+				      sizeof(clientaddr));
 
 	      if(sent_bytes < 0){
 		perror("Tracker - sendto failed: Handling server area request");
