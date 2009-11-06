@@ -1,0 +1,6 @@
+#!/bin/sh
+gcc -o tracker -w tracker.c;
+cp tracker ../testArea;
+cd ../testArea;
+./tracker -f server.config -p 1234;
+
