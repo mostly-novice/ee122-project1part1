@@ -69,13 +69,13 @@ int main(int argc, char* argv[]){
 
   // Initilizations
   int c;
-  char* svalue=NULL;
+  char* fvalue=NULL;
   char* pvalue=NULL;
 
-  while( (c=getopt( argc,argv,"s:p:"))!=-1){
+  while( (c=getopt( argc,argv,"f:p:"))!=-1){
     switch(c){
-    case 's':
-      svalue=optarg;
+    case 'f':
+      fvalue=optarg;
       break;
     case 'p':
       pvalue=optarg;
@@ -86,7 +86,7 @@ int main(int argc, char* argv[]){
     }
   }
   
-  configpath = svalue;
+  configpath = fvalue;
   myport = atoi(pvalue);
 
   printf("Configpath:%s\n",configpath);
