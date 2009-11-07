@@ -103,10 +103,10 @@ struct server_area_response {
     unsigned int id;
     unsigned int server_ip;
     unsigned short tcpport;
-    unsigned char max_x;
-    unsigned char max_y;
     unsigned char min_x;
+    unsigned char max_x;
     unsigned char min_y;
+    unsigned char max_y;
     unsigned char paddding;
 }__attribute__((packed));
 
