@@ -69,10 +69,25 @@ int main(int argc, char* argv[]){
 
   // Initilizations
   int c;
+  char* svalue=NULL;
+  char* pvalue=NULL;
 
-  // TODO: Implemnting the getopt
-  configpath = argv[2];
-  myport = atoi(argv[4]);
+  while( (c=getopt( argc,argv,"s:p:"))!=-1){
+    switch(c){
+    case 's':
+      svalue=optarg;
+      break;
+    case 'p':
+      pvalue=optarg;
+      break;
+    default:
+      printf("Usage: ./client -s <tracker IP address> -p <tracker port>");
+      return 0;
+    }
+  }
+  
+  configpath = svalue;
+  myport = atoi(pvalue);
 
   printf("Configpath:%s\n",configpath);
   printf("myport:%d\n",myport);
