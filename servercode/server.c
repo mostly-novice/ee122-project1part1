@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
 
     // Select
 
-    FD_ZERO(&readfds);
+    //FD_ZERO(&readfds);
 //    FD_SET (listener,&readfds);
  //   FD_SET (udplistener,&readfds);
   //  FD_SET (STDIN,&readfds);
