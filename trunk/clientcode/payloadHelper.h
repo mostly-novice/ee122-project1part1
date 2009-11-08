@@ -26,6 +26,7 @@ int process_move_notify(char payload_c[], Player * self, LinkedList * mylist){
     self->x = mn->x;
     self->y = mn->y;
     on_move_notify(self->name, self->x, self->y, self->hp,self->exp);
+
   } else { // The guy is someone else
     p = findPlayer(mn->name,mylist);
     if(p == NULL){ // Not in the list
