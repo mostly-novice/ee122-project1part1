@@ -193,7 +193,6 @@ int main(int argc, char* argv[]){
   int max_x;
   int min_y;
   int max_y;
-
   // Select
   fd_set readfds;
   fd_set writefds;
@@ -414,7 +413,7 @@ int main(int argc, char* argv[]){
 
 	// Need to send the server the player_state_request
 	dbserversin.sin_family = AF_INET;
-	dbserversin.sin_addr.s_addr = inet_addr("128.32.42.138");
+	dbserversin.sin_addr.s_addr = slr->server_ip;
 	dbserversin.sin_port = slr->udpport;
 
 	sendpsrequest(self->name,udpsock,&dbserversin,currentID);
