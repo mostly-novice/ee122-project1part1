@@ -12,27 +12,34 @@ void printMessage(char * message, int len){
 
 //Helper: handle the various task in clients
 // TESTED
-int handlelogin(char* name,int sock){
+int handlelogin(Player * self,int sock){
   int i = 0;
   int j;
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct login_request * payload = (struct login_request *) malloc(sizeof(int)*3); // remember to free this
+  struct login_request * payload = (struct login_request *) malloc(sizeof(int)*5); // remember to free this
   hdr->version = 0x04;
-  hdr->len = htons(0x0010);
+  hdr->len = htons(0x0018);
   hdr->msgtype = 0x1;
-  strcpy(payload->name,name);
+  strcpy(payload->name,self->name);
+  payload->hp = htonl(self->hp);
+  payload->exp = htonl(self->exp);
+  payload->x   = self->x;
+  payload->y   = self->y;
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
-  unsigned char tosent[16];
+  unsigned char tosent[24];
 
-  for(j = 0; j < 16; j++){
+  for(j = 0; j < 24; j++){
     if(j<4) tosent[j] = header_c[j];
     else tosent[j] = payload_c[j-4];
   }
 
+  printf("Sending login request");
+  printMessage(tosent,24);
+
   // Send a login message to the server
-  int bytes_sent = send(sock, tosent,16,0);
+  int bytes_sent = send(sock,tosent,24,0);
   if (bytes_sent < 0) perror("send failed");
   free(hdr);
   free(payload);
@@ -138,7 +145,6 @@ int handlespeak(char * m, int sock){
   hdr->msgtype = SPEAK+10;
 
   unsigned char * header_c = (unsigned char *) hdr;
-
   unsigned char tosent[totalMessageLength];
 
   for(j = 0; j < totalMessageLength; j++){
@@ -192,6 +198,7 @@ int sendslrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
   strcpy(slr->name,name);
 
   char * tosent = (char*) slr;
+  printf("sendslrrequest - udpsock:%d\n", udpsock);
   int sent_bytes = sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockadrr*)sin,sizeof(*sin));
   if(sent_bytes < 0) {
     perror("sendslrequest: sendto failed.");
@@ -200,21 +207,25 @@ int sendslrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
 }
 
 // Sending the PLAYER_STATE_REQUEST
-int sendpsrequest(char * name, int udpsock,struct sockaddr_in * dbserversin, int currentID){
+int sendpsrequest(char * name, int udpsock,struct sockaddr_in * sin, int currentID){
   struct player_state_request * psr = (struct player_state_request *) malloc(sizeof(struct player_state_request));
   psr->message_type = PLAYER_STATE_REQUEST;
   psr->id = currentID;
   strcpy(psr->name,name);
 
+  printf("sendslrrequest - udpsock:%d\n", udpsock);
+
   char * tosent = (char*) psr;
-  int sent_bytes = sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)dbserversin,sizeof(*dbserversin));
+  int sent_bytes = sendto(udpsock,
+			  tosent,
+			  PLAYER_STATE_REQUEST_SIZE,
+			  0,
+			  (struct sockaddr*)sin,
+			  sizeof(*sin));
   if(sent_bytes < 0) {
-    perror("sendslrequest: sendto failed.");
+    perror("sendpsrequest - SEND PLAYER STATE REQUEST: sendto failed.");
   }
   return 0;
-}
-
-int handleudplogin(char* name,int sock){
 }
 
 // Sending the SERVER_AREA_REQUEST
@@ -226,29 +237,27 @@ int sendsarequest(char x, char y, int udpsock,struct sockaddr_in * sin, int curr
   sar->y = y;
 
   char * tosent = (char*) sar;
-  int sent_bytes = sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,&sin,sizeof(sin));
+  int sent_bytes = sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,(struct sockadrr*)sin,sizeof(*sin));
   if(sent_bytes < 0) {
-    perror("sendslrequest: sendto failed.");
+    perror("sendsarequest - SEND SERVER_AREA_REQUEST: sendto failed.");
   }
   return 0;
 }
 
 
 // Sending SAVE_STATE_REQUEST
-int senspsrequest(Player * self, int udpsock,struct sockaddr_in sin, int currentID){
+int sendssrequest(Player * self, int udpsock,struct sockaddr_in * sin, int currentID){
   struct save_state_request * ssr = (struct save_state_request *) malloc(sizeof(struct save_state_request));
   ssr->message_type = SAVE_STATE_REQUEST;
   ssr->id = currentID;
   strcpy(ssr->name,self->name);
-  ssr->hp  = htons(self->hp);
-  ssr->exp = htons(self->exp);
+  ssr->hp  = htonl(self->hp);
+  ssr->exp = htonl(self->exp);
   ssr->x   = self->x;
   ssr->y   = self->y;
 
   char * tosent = (char*) ssr;
-  int sent_bytes = sendto(udpsock,tosent,SAVE_STATE_REQUEST_SIZE,0,&sin,sizeof(sin));
-  if(sent_bytes < 0) {
-    perror("sendslrequest: sendto failed.");
-  }
+  int sent_bytes = sendto(udpsock,tosent,SAVE_STATE_REQUEST_SIZE,0,(struct sockadrr*)sin,sizeof(*sin));
+  if(sent_bytes < 0) perror("sendslrequest: sendto failed.");
   return 0;
 }

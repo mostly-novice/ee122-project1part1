@@ -188,17 +188,26 @@ int main(int argc, char* argv[]){
   int udpdone = 0;
   int fdmax = 0;
 
+  // Playable area
+  int min_x;
+  int max_x;
+  int min_y;
+  int max_y;
+
   // Select
   fd_set readfds;
   fd_set writefds;
 
   struct sockaddr_in trackersin;
+  int tracker_sin_len;
   memset(&trackersin, 0, sizeof(trackersin));
 
   struct sockaddr_in serversin;
+  int server_sin_len;
   memset(&serversin, 0, sizeof(serversin));
 
   struct sockaddr_in dbserversin;
+  int dbserver_sin_len;
   memset(&dbserversin, 0, sizeof(dbserversin));
 
   message_record ** message_list = malloc(sizeof(*message_list)*50);
@@ -269,10 +278,8 @@ int main(int argc, char* argv[]){
       if(!readstdin(command,arg)){
 	continue;
       }
-
       if (strcmp(command,"login") == 0){ // LOGIN
 	char* name = arg; // TODO: Sanity check the input.'
-
 	if(!check_player_name(name)){
 	  printf("! Invalid syntax.\n");
 	  show_prompt();
@@ -297,27 +304,46 @@ int main(int argc, char* argv[]){
 	}
 	unsigned char d;
 
-	if(strcmp(direction,"north")==0){       d = NORTH;
-	}else if(strcmp(direction,"south")==0){ d = SOUTH;
-	}else if(strcmp(direction,"east")==0){  d = EAST;
-	}else if(strcmp(direction,"west")==0){  d = WEST;
+	if(strcmp(direction,"north")==0){       d = NORTH; self->y-=3;
+	}else if(strcmp(direction,"south")==0){ d = SOUTH; self->y+=3;
+	}else if(strcmp(direction,"east")==0){  d = EAST;  self->x-=3;
+	}else if(strcmp(direction,"west")==0){  d = WEST;  self->x+=3;
 	} else {
 	  printf("! Invalid direction: %s\n", arg);
 	  continue;
 	}
-	int status = handlemove(d,tcpsock);
+
+	if(self->x > max_x || self->x < min_x || self->y > max_y || self->y < min_y){
+	  // Logout of the current server
+	  if(!isLogin){
+	    show_prompt();
+	    printf("You must login first.\n");
+	    show_prompt();
+	    continue;
+	  }
+	  if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
+	  freePlayers(mylist); // Free every player in the list
+	  free(mylist); // Free the list
+	  mylist = (LinkedList *) malloc (sizeof(LinkedList));
+	  show_prompt();
+
+	  // Contact the tracker
+	  // Send SERVER_AREA_REQUEST
+	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
+	  currentID++;
+	} else {
+	  int status = handlemove(d,tcpsock);
+	}
       } else if(strcmp(command,"attack") == 0){ // ATTACK
 	char* victimname = arg;
 	if(strcmp(victimname,self->name)== 0){
 	  show_prompt();
 	  continue;
 	}
-
 	if(!check_player_name(victimname)){
 	  printf("! Invalid name: %s\n", victimname);
 	  continue;
 	}
-
 	// Search for the guy in the list
 	Node * vic = findPlayer(victimname,mylist);
 	if (!vic){ // If it is NULL
@@ -326,17 +352,12 @@ int main(int argc, char* argv[]){
 	}
 
 	Player * victim = vic->datum;
-
 	int isvisible = isVisible(self->x,self->y,victim->x,victim->y);
-
 	if(!isvisible){ on_not_visible(); continue;}
-
 	int status = handleattack(victimname,tcpsock);
-
       } else if(strcmp(command,"speak") == 0){
 
 	char * m = arg;
-
 	// Check the message
 	if(!check_player_message(m)){ printf("! Invalid text message.\n"); show_prompt(); continue;}
 	if(handlespeak(m,tcpsock)){ perror("handlespeak"); }
@@ -350,6 +371,9 @@ int main(int argc, char* argv[]){
 	  continue;
 	}
 	if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
+	sendssrequest(self,udpsock,&dbserversin,currentID);
+	currentID++;
+
 	free(buffer);
 	free(self);
 	freePlayers(mylist); // Free every player in the list
@@ -371,9 +395,6 @@ int main(int argc, char* argv[]){
 
 
 
-
-
-
       /*
        * Handling data from UDP sock
        *
@@ -382,7 +403,7 @@ int main(int argc, char* argv[]){
 
     } else if (FD_ISSET(udpsock, &readfds)){
       unsigned char read_buffer[4096];
-      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,&trackersin,sizeof(trackersin));
+      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,NULL,NULL);
       if (read_bytes < 0){
 	perror("Handling data from UDP sock: read_bytes == -1");
       }
@@ -393,38 +414,37 @@ int main(int argc, char* argv[]){
 
 	// Need to send the server the player_state_request
 	dbserversin.sin_family = AF_INET;
-	dbserversin.sin_addr.s_addr = slr->server_ip;
+	dbserversin.sin_addr.s_addr = inet_addr("128.32.42.138");
 	dbserversin.sin_port = slr->udpport;
+
 	sendpsrequest(self->name,udpsock,&dbserversin,currentID);
 
-
-
       } else if (msgtype == PLAYER_STATE_RESPONSE){
+	// We got a player state response
 	struct player_state_response * psr = (struct player_state_response *) read_buffer;
 	// Check whether this data is malformed
 	
 	// Initiate the player states
-	initialize(self,psr->name,psr->hp,psr->exp,psr->x,psr->y);
+	initialize(self,psr->name,ntohl(psr->hp),ntohl(psr->exp),psr->x,psr->y);
 
 	// Prepare the data to send the server_area_request
 	sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
-
-
-
 
       } else if (msgtype == SERVER_AREA_RESPONSE){
 	struct server_area_response * sares = (struct server_area_response *) read_buffer;
 	
 	// Check if the data is malformed
+	min_x = sares->min_x;
+	max_x = sares->max_y;
+	min_y = sares->min_x;
+	max_y = sares->max_y;
 
-	// Set the value for serverIP and serverPort
-	serverIP = ntohl(sares->server_ip);
-	serverPort = ntohs(sares->tcpport);
+	fprintf(stdout,"Playable Area: MINX:%d, MAXX:%d, MINY:%d, MAXY:%d\n",min_x,max_x,min_y,max_y);
 
 	struct sockaddr_in tcpsin;
 	tcpsin.sin_family = AF_INET;
-	tcpsin.sin_addr.s_addr = serverIP;
-	tcpsin.sin_port = serverPort;
+	tcpsin.sin_addr.s_addr = sares->server_ip;
+	tcpsin.sin_port = sares->tcpport;
 
 	// Establish connection
 	if(connect(tcpsock,(struct sockaddr *) &tcpsin, sizeof(tcpsin)) < 0){
@@ -438,11 +458,13 @@ int main(int argc, char* argv[]){
 	  abort();
 	}
 
+	int status = handlelogin(self->name,tcpsock);
+
 	// WE ARE GOOD TO GO
 
 	
       } else if (msgtype == SAVE_STATE_RESPONSE){
-	struct player_state_response * ssr = (struct player_state_response *) read_buffer;
+	break;
       }
 
 
