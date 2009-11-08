@@ -8,7 +8,6 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <time.h>
 
 #include "header.h"
 #include "messages.h"
@@ -226,12 +225,12 @@ int main(int argc, char* argv[]){
                         // Check to see whether this is malformed
 
                         process_ss_request(ssr->name,
-                            ssr->hp,
-                            ssr->exp,
-                            ssr->x,
-                            ssr->y,
-                            udplistener,
-                            udpsin,id);
+                                ssr->hp,
+                                ssr->exp,
+                                ssr->x,
+                                ssr->y,
+                                udplistener,
+                                udpsin,id);
                         id++; // Increment ID   TODO: IS THIS RIGHT??
                     }
 
