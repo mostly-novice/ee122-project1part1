@@ -665,18 +665,14 @@ int main(int argc, char* argv[]){
                                 bufferd->desire_length = HEADER_LENGTH;
                                 bufferd->flag = HEADER;
                             } // end of handling payload
-                        } // End of while
-                    }
-                }
-            }
-        }
-
-
+                        } // End of while more desired length
+                    } // end else
+                }  // end else someone has data
+            } // end FD_ISSET
+        }  // end foreach fd
         if (timeout){
             updateHP(mylist);
             lasttime = currenttime;
         }
-
     }
-    return 0;
 }
