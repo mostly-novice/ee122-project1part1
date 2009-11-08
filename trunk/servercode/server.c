@@ -95,9 +95,13 @@ int main(int argc, char* argv[]){
     int sin_len;
 
     // Select
-    fd_set readfds;
-    fd_set master; // master fd
-    fd_set login;
+
+    FD_ZERO(&readfds);
+    FD_SET (listener,&readfds);
+    FD_SET (udplistener,&readfds);
+    FD_SET (STDIN,&readfds);
+    FD_SET master; // master fd
+    FD_SET login;
     int fdmax;
 
     char ** fdnamemap = malloc(sizeof(*fdnamemap)*MAX_CONNECTION);
