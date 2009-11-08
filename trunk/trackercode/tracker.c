@@ -42,8 +42,14 @@ unsigned int hash(char*s){
   return hashval;
 }
 
-int findServer(char x, int server_count){
-  return x/(100/server_count);
+int findServer(char x, int server_count, server_record ** sr_array){
+  int i;
+  for(i=0;i<server_count;i++){
+    if (sr_array[i]->max_x >= x && sr_array[i]->min_x <= x){
+      return i;
+    }
+  }
+  return -1;
 }
 
 int main(int argc, char* argv[]){
@@ -184,7 +190,7 @@ int main(int argc, char* argv[]){
 	      printMessage(read_buffer,SERVER_AREA_REQUEST_SIZE);
 	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
 	      // TODO: Check if the value in the package is valid
-	      int server_id = findServer(sareq->x,server_count);
+	      int server_id = findServer(sareq->x,server_count,sr_array);
 	      server_record * sr = sr_array[server_id];
 
 	      char sarespond[STORAGE_LOCATION_RESPONSE_SIZE];

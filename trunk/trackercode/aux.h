@@ -30,8 +30,12 @@ int initsr(server_record ** sr_array, char * configpath){
   // NOTE: This is different than the spec.
   int i;
   for(i=0;i<count;i++){
-    sr_array[i]->min_x = ceiling(99.0/count)*i;
-    sr_array[i]->max_x = ceiling(99.0/count)*(i+1)-1;
+    sr_array[i]->min_x = 99/count*i;
+    if(i==count-1){
+      sr_array[i]->max_x = 99;
+    } else {
+      sr_array[i]->max_x = (99/count)*(i+1)-1;
+    }
 
     /* printf("server_ip:%d\n", sr_array[i]->ip); */
 /*     printf("tcp_port:%d\n", sr_array[i]->tcp_port); */
