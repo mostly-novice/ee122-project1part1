@@ -201,7 +201,6 @@ int sendslrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
   strcpy(slr->name,name);
 
   char * tosent = (char*) slr;
-  printf("sendslrrequest - udpsock:%d\n", udpsock);
   int sent_bytes = sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockadrr*)sin,sizeof(*sin));
   if(sent_bytes < 0) {
     perror("sendslrequest: sendto failed.");
@@ -215,8 +214,6 @@ int sendpsrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
   psr->message_type = PLAYER_STATE_REQUEST;
   psr->id = currentID;
   strcpy(psr->name,name);
-
-  printf("sendslrrequest - udpsock:%d\n", udpsock);
 
   char * tosent = (char*) psr;
   int sent_bytes = sendto(udpsock,

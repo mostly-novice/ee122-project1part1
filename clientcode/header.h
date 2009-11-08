@@ -88,7 +88,6 @@ struct storage_location_response {
     unsigned int id;
     unsigned int server_ip;
     unsigned short udpport;
-    unsigned char paddding;
 }__attribute__((packed));
 
 struct server_area_request {
@@ -104,10 +103,10 @@ struct server_area_response {
     unsigned int id;
     unsigned int server_ip;
     unsigned short tcpport;
-    unsigned char max_x;
-    unsigned char max_y;
     unsigned char min_x;
+    unsigned char max_x;
     unsigned char min_y;
+    unsigned char max_y;
     unsigned char paddding;
 }__attribute__((packed));
 
@@ -146,5 +145,3 @@ struct save_state_response {
     unsigned char error_code;
     unsigned short padding;
 }__attribute__((packed));
-
-

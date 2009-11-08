@@ -303,23 +303,17 @@ int main(int argc, char* argv[]){
 	}
 	unsigned char d;
 
-	if(strcmp(direction,"north")==0){       d = NORTH; self->y-=3;
-	}else if(strcmp(direction,"south")==0){ d = SOUTH; self->y+=3;
-	}else if(strcmp(direction,"east")==0){  d = EAST;  self->x-=3;
-	}else if(strcmp(direction,"west")==0){  d = WEST;  self->x+=3;
+	if(strcmp(direction,"north")==0){       d = NORTH; self->y -= 3; self->y = (100+self->y) % 100;
+	}else if(strcmp(direction,"south")==0){ d = SOUTH; self->y += 3; self->y = (100+self->y) % 100;;
+	}else if(strcmp(direction,"east")==0){  d = EAST;  self->x += 3; self->x = (100+self->x) % 100;;
+	}else if(strcmp(direction,"west")==0){  d = WEST;  self->x -= 3; self->x = (100+self->x) % 100;;
 	} else {
 	  printf("! Invalid direction: %s\n", arg);
 	  continue;
 	}
 
+	fprintf(stdout,"Playable Area: MINX:%d, MAXX:%d, MINY:%d, MAXY:%d\n",min_x,max_x,min_y,max_y);
 	if(self->x > max_x || self->x < min_x || self->y > max_y || self->y < min_y){
-	  // Logout of the current server
-	  if(!isLogin){
-	    show_prompt();
-	    printf("You must login first.\n");
-	    show_prompt();
-	    continue;
-	  }
 	  if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
 	  freePlayers(mylist); // Free every player in the list
 	  free(mylist); // Free the list
@@ -328,6 +322,7 @@ int main(int argc, char* argv[]){
 
 	  // Contact the tracker
 	  // Send SERVER_AREA_REQUEST
+	  printf("Attempting to switch server.\n");
 	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
 	  currentID++;
 	} else {
@@ -417,6 +412,7 @@ int main(int argc, char* argv[]){
 	dbserversin.sin_port = slr->udpport;
 
 	sendpsrequest(self->name,udpsock,&dbserversin,currentID);
+	currentID++;
 
       } else if (msgtype == PLAYER_STATE_RESPONSE){
 	// We got a player state response
@@ -428,15 +424,13 @@ int main(int argc, char* argv[]){
 
 	// Prepare the data to send the server_area_request
 	sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
+	currentID++;
 
       } else if (msgtype == SERVER_AREA_RESPONSE){
 	struct server_area_response * sares = (struct server_area_response *) read_buffer;
 	
 	// Check if the data is malformed
-	min_x = sares->min_x;
-	max_x = sares->max_y;
-	min_y = sares->min_x;
-	max_y = sares->max_y;
+	min_x = sares->min_x; max_x = sares->max_x; min_y = sares->min_y; max_y = sares->max_y;
 
 	fprintf(stdout,"Playable Area: MINX:%d, MAXX:%d, MINY:%d, MAXY:%d\n",min_x,max_x,min_y,max_y);
 
@@ -451,15 +445,10 @@ int main(int argc, char* argv[]){
 	  freePlayers(mylist);
 	  free(self);
 	  free(mylist);
-	  
-	  close(tcpsock);
-	  on_client_connect_failure();
-	  abort();
+	  shutdown(tcpsock,2);
 	}
 
 	int status = handlelogin(self->name,tcpsock);
-
-	// WE ARE GOOD TO GO
 
 	
       } else if (msgtype == SAVE_STATE_RESPONSE){
