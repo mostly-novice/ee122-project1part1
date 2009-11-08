@@ -92,6 +92,7 @@ int main(int argc, char* argv[]){
     int status;
 
     struct sockaddr_in udpsin;
+    udpsin.sin_family = AF_INET;
     int sin_len;
 
     // Select
@@ -181,6 +182,7 @@ int main(int argc, char* argv[]){
     FD_ZERO(&master);
     FD_ZERO(&readfds);
     FD_ZERO(&login);
+
     FD_SET(STDIN,&readfds);
     FD_SET(listener,&readfds);
     FD_SET(udplistener,&readfds);
@@ -205,6 +207,7 @@ int main(int argc, char* argv[]){
         // run through the existing connections looking for data to read
         int i;
         for(i=0; i<= fdmax; i++){
+
             if (FD_ISSET(i,&readfds)){
                 printf("%d is being processed\n",i);
                 printf("%d is the UDP Listener\n",udplistener);
