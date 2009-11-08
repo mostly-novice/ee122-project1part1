@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "header.h"
 #include "messages.h"
