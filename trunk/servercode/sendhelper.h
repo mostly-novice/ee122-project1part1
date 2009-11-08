@@ -182,6 +182,17 @@ void createpsr(char *name, int hp, int exp, char x, char y, int id,char buffer[]
   memcpy(buffer,toreturn,PLAYER_STATE_RESPONSE_SIZE);
 }
 
+void create_ss_response(int id,char success,char buffer[]){
+    struct save_state_response * ssr = (struct save_state_response *) malloc (sizeof(struct save_state_response));
+
+    ssr->message_type = SAVE_STATE_RESPONSE;
+    ssr->id = id;
+    ssr->error_code = succes;
+
+    char * toreturn = (char*) ssr;
+    memcpy(buffer,toreturn,SAVE_STATE_RESPONSE_SIZE);
+}
+
 int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expected){
   int i;
   for(i=0; i<fdmax+1;i++){

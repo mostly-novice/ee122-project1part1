@@ -185,7 +185,7 @@ int process_invalid_state(char payload_c[]){
 }
 
 // Processing PLAYER_STATE_REQUEST
-int processpsr(char*name,int udpsock,struct sockaddr_in targetsin,int id){
+int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id){
   FILE * file = fopen(name,'r');
   int hp;
   int exp;
@@ -218,7 +218,22 @@ int processpsr(char*name,int udpsock,struct sockaddr_in targetsin,int id){
   udpunicast(udpsock,targetsin,buffer,PLAYER_STATE_RESPONSE_SIZE);
 }
 
-int process_save_state_request(char*name){
+// process_ssr : process save state request
+int process_ss_request(char* name,int hp, int exp, char x, char y, int udpsock, struct sockaddr_in targetsin, int id){
+    FILE * file = fopen(name,"w+");
+
+    char success = '0';
+
+    // Save the file
+    if(file == NULL) success = '1';
+    fprintf(file,"%d %d %d %d",hp,exp,x,y);
+    fclose(file);
+
+    // Send the save_state_response
+    char buffer[SAVE_STATE_RESPONSE_SIZE];
+    create_ss_response(id,success,buffer);
+    udpunicast(udpsock,targetsin,buffer,SAVE_STATE_RESPONSE_SIZE);
+
 }
 
 int updateHP(LinkedList * mylist){
