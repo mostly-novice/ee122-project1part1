@@ -124,8 +124,9 @@ int process_attack(int sock,
 
             if(victim->hp == 0){
                 victim->hp = 30+rand()%21;
-                victim->x = rand()%100;
-                victim->y = rand()%100;
+//                We don't change the (x,y) coordinates when a victim dies.
+//                victim->x = rand()%100;
+//                victim->y = rand()%100;
 
 
                 // Broadcasting move notify
