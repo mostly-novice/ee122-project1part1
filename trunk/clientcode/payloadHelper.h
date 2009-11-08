@@ -14,8 +14,6 @@ int process_login_reply(char payload_c[],Player * self){
 
 int process_move_notify(char payload_c[], Player * self, LinkedList * mylist){
   struct move_notify * mn = (struct move_notify *) payload_c;
-  printf("Processing MN\n");
-  printMessage(mn,24);
 
   Node *p;
   //check_malformed_move(mn->name,mn->x,mn->y,ntohl(mn->hp),ntohl(mn->exp));
