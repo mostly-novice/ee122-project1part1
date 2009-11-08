@@ -187,7 +187,7 @@ void create_ss_response(int id,char success,char buffer[]){
 
     ssr->message_type = SAVE_STATE_RESPONSE;
     ssr->id = id;
-    ssr->error_code = succes;
+    ssr->error_code = success;
 
     char * toreturn = (char*) ssr;
     memcpy(buffer,toreturn,SAVE_STATE_RESPONSE_SIZE);
