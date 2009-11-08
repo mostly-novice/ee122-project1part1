@@ -106,7 +106,7 @@ int main(int argc, char* argv[]){
     for(k=0; k<MAX_CONNECTION; ++k ){
         fdnamemap[k] = NULL;
         bufferdata * bufferd = (bufferdata *) malloc(sizeof(bufferdata));
-        bufferd->flag = HEADER;
+        bufferd->flag = HEADER;         // error: parse error before '.' token
         bufferd->desire_length = HEADER_LENGTH;
         bufferd->buffer_size = 0;
         bufferd->buffer = NULL;
