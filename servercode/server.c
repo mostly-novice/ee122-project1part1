@@ -83,7 +83,7 @@ int main(int argc, char* argv[]){
     // Keep track of the list of sockets
 
     srand(time(NULL));
-    int id=rand();
+    int id = rand();
     int listener;
     int udplistener;
     int myport;
@@ -219,7 +219,7 @@ int main(int argc, char* argv[]){
 
                         process_psr(psr->name,udplistener,udpsin,id);
                         id++; // Increment ID
-                    } else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){	// TODO: SAVE_STATE_REQUEST
+                    } else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){
                         struct save_state_request * ssr = (struct save_state_request *) udp_read_buffer;
 
                         // Check to see whether this is malformed
