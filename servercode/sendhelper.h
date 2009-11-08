@@ -167,12 +167,12 @@ void createinvalidstate(unsigned char error_code, char buffer[]){
   free(payload);
 }
 
-void createpsr(char * name, int hp, int exp, char x, char y, int id,char buffer[]){
+void createpsr(char *name, int hp, int exp, char x, char y, int id,char buffer[]){
   struct player_state_response * psr = (struct player_state_response *) malloc(sizeof(struct player_state_response));
 
+  strcpy(psr->name,name);
   psr->message_type = PLAYER_STATE_RESPONSE;
   psr->id   = htonl(id);
-  psr->name = name;
   psr->hp   = htonl(hp);
   psr->exp  = htonl(exp);
   psr->x    = x;

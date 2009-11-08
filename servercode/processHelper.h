@@ -185,12 +185,12 @@ int process_invalid_state(char payload_c[]){
 }
 
 // Processing PLAYER_STATE_REQUEST
-int processpsr(char*name){
+int processpsr(char*name,int udpsock,struct sockaddr_in targetsin,int id){
   FILE * file = fopen(name,'r');
   int hp;
   int exp;
   char x;
-  char x;
+  char y;
 
   if(file){ // If this file existed
     fscanf(file,"%d%d%d%d",&hp,&exp,&x,&y);
@@ -214,7 +214,7 @@ int processpsr(char*name){
 
   // At this point, we should have all the data to form the PLAYER_STATE_RESPONSE
   char buffer[PLAYER_STATE_RESPONSE_SIZE];
-  createpsr(name,hp,exp,x,y,buffer);
+  createpsr(name,hp,exp,x,y,id,buffer);
   udpunicast(udpsock,targetsin,buffer,PLAYER_STATE_RESPONSE_SIZE);
 }
 
