@@ -133,7 +133,7 @@ int handlespeak(char * m, int sock){
 
   unsigned int payloadLength = strlen(m) + 1;
   if(payloadLength%4){
-    payloadLength = 4 - (payloadLength % 4);
+    payloadLength += 4 - (payloadLength % 4);
   }
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
 
