@@ -84,6 +84,7 @@ int main(int argc, char* argv[]){
 
     srand(time(NULL));
     int id = rand();
+
     int listener;
     int udplistener;
     int myport;
@@ -173,6 +174,11 @@ int main(int argc, char* argv[]){
 
     if (bind(listener,(struct sockaddr *) &sin, sizeof(sin)) < 0){
         perror("Bind failed");
+        abort();
+    }
+
+    if (bind(udplistener,(struct sockaddr *) &udpsin, sizeof(udpsin)) < 0){
+        perror("UDP Bind failed");
         abort();
     }
     if (listen(listener,MAX_CONNECTION)){
