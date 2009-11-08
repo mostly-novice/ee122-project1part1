@@ -207,6 +207,7 @@ int main(int argc, char* argv[]){
                 }
 
                 if (i==udplistener){ // NEW DATA COMING FROM UDPPORT
+		    printf("Got a udp message\n");
                     unsigned char udp_read_buffer[4096];
                     int expected_data_len = sizeof(udp_read_buffer);
                     int read_bytes = recvfrom(udplistener,udp_read_buffer,expected_data_len,0,
@@ -249,6 +250,7 @@ int main(int argc, char* argv[]){
                     }
 
                 } else { // If someone has data
+		    printf("Got a message on port %d\n",i);
                     unsigned char read_buffer[4096];
                     int expected_data_len = sizeof(read_buffer);
                     unsigned char *p = (char*) read_buffer; // Introduce a new pointer
@@ -409,7 +411,7 @@ int main(int argc, char* argv[]){
                                         if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
 
                                             // Send a login request with an errorcode 1
-                                            Player * newplayer = process_login_request(1,i,fdmax,login,lr->name,mylist);
+                                            Player * newplayer = process_login_request(1,i,fdmax,login,lr->name,lr->hp,lr->exp,lr->x,lr->y,mylist);
 
                                         } else {
 
