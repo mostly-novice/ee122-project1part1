@@ -414,7 +414,7 @@ int main(int argc, char* argv[]){
                                         } else {
 
                                             FD_SET(i,&login); // Log him in
-                                            Player * newplayer = process_login_request(0,i,fdmax,login,lr->name,mylist);
+                                            Player * newplayer = process_login_request(0,i,fdmax,login,lr->name,lr->hp,lr->exp,lr->x,lr->y,mylist);
                                             if (!fdnamemap[i]){ fdnamemap[i] = malloc(sizeof(char)*11);}
                                             strcpy(fdnamemap[i],lr->name);
                                             strcpy(newplayer->name,fdnamemap[i]);
