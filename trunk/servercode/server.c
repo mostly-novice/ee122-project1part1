@@ -201,13 +201,14 @@ int main(int argc, char* argv[]){
         // run through the existing connections looking for data to read
         int i;
         for(i=0; i<= fdmax; i++){
+            printf("processing %d\n",i);
             if (FD_ISSET(i,&readfds)){
                 if (currenttime-lasttime < 5){
                     timeout = 0;
                 }
 
                 if (i==udplistener){ // NEW DATA COMING FROM UDPPORT
-		    printf("Got a udp message\n");
+                    printf("Got a udp message\n");
                     unsigned char udp_read_buffer[4096];
                     int expected_data_len = sizeof(udp_read_buffer);
                     int read_bytes = recvfrom(udplistener,udp_read_buffer,expected_data_len,0,
