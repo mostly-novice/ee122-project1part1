@@ -97,10 +97,7 @@ int process_speak_notify(char payload_c[]){
 int process_logout_notify(char payload_c[], LinkedList * mylist){
   struct logout_reply * loreply = (struct logout_reply *) payload_c;
   check_malformed_logout(loreply->name);
-  if (!removePlayer(loreply->name, mylist)){
-    perror("LOGOUT_NOTIFY - remove player");
-    exit(-1);
-  }
+  removePlayer(loreply->name, mylist);
   
   printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
   show_prompt();
