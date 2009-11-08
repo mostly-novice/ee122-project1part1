@@ -182,7 +182,9 @@ int main(int argc, char* argv[]){
     FD_ZERO(&readfds);
     FD_ZERO(&login);
     FD_SET(listener,&master);
-    fdmax = listener;
+
+    if(udplistener>fdmax) fdmax = udplistener;
+    if(listener>fdmax) fdmax = listener;
 
     int timeout = 1;
     time_t lasttime = time(NULL);
