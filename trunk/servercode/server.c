@@ -97,10 +97,10 @@ int main(int argc, char* argv[]){
     // Select
 
     FD_ZERO(&readfds);
-    FD_SET (listener,&readfds);
-    FD_SET (udplistener,&readfds);
-    FD_SET (STDIN,&readfds);
-    FD_SET master; // master fd
+//    FD_SET (listener,&readfds);
+ //   FD_SET (udplistener,&readfds);
+  //  FD_SET (STDIN,&readfds);
+   // FD_SET master; // master fd
     FD_SET login;
     int fdmax;
 
@@ -185,7 +185,9 @@ int main(int argc, char* argv[]){
     FD_ZERO(&master);
     FD_ZERO(&readfds);
     FD_ZERO(&login);
-    FD_SET(listener,&master);
+    FD_SET(STDIN,&readfds);
+    FD_SET(listener,&readfds);
+    FD_SET(udplistener,&readfds);
 
     if(udplistener>fdmax) fdmax = udplistener;
     if(listener>fdmax) fdmax = listener;
