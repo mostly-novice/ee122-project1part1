@@ -97,6 +97,7 @@ int main(int argc, char* argv[]){
     // Select
     fd_set master;
     fd_set readfds;
+    fd_set login;
     int fdmax;
 
     char ** fdnamemap = malloc(sizeof(*fdnamemap)*MAX_CONNECTION);
