@@ -81,6 +81,9 @@ int main(int argc, char* argv[]){
 
   // Connection variables
   // Keep track of the list of sockets
+
+  srand(time(NULL));
+  int id=rand();
   int listener;
   int udplistener;
   int myport;
@@ -119,13 +122,30 @@ int main(int argc, char* argv[]){
 
   // Initilizations
   int c;
-  char* pvalue=NULL;
+  char* uvalue=NULL;
+  char* tvalue=NULL;
 
+  while( (c=getopt( argc,argv,"u:t:"))!=-1){
+    switch(c){
+    case 'u':
+      uvalue=optarg;
+      break;
+    case 't':
+      tvalue=optarg;
+      break;
+    default:
+      printf("Usage: ./server -t <server TCP port> -u <server UDP port");
+      return 0;
+    }
+  }
+  
   mkdir(DIR);
   chdir(DIR);
 
-  myport = atoi(argv[2]);
-  myudpport = atoi(argv[4]);
+  myport = atoi(tvalue);
+  myudpport = atoi(uvalue);
+
+
 
   if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){
     perror('setvbuf');
@@ -187,17 +207,17 @@ int main(int argc, char* argv[]){
 	  timeout = 0;
 	}
 	
-	if (i==udpsock){ // NEW DATA COMING FROM UDPPORT
+	if (i==udplistener){ // NEW DATA COMING FROM UDPPORT
 	  unsigned char udp_read_buffer[4096];
-	  int expected_data_len = sizeof(read_buffer);
+	  int expected_data_len = sizeof(udp_read_buffer);
 	  int read_bytes = recvfrom(udplistener,udp_read_buffer,expected_data_len,0,
 				    (struct sockaddr*)&udpsin,&sin_len);
 	  if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
-	    struct player_state_request * psr = (struct player_state_request * psr) udp_read_buffer;
+	    struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
 	    
 	    // Check to see whether this is malformed
 
-	    processpsr(psr->name);
+	    processpsr(psr->name,udplistener,udpsin,id);
 	  } else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){
 	  }
 
@@ -239,9 +259,9 @@ int main(int argc, char* argv[]){
 		if(player){
 		  printf("%s just left the game.\n",player->name);
 		  removePlayer(fdnamemap[i],mylist);
-		  FILE *file = fopen(fdnamemap[i],"w+");
-		  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		  fclose(file);
+		  //FILE *file = fopen(fdnamemap[i],"w+");
+		  //fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		  ////fclose(file);
 		  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 		  createlogoutnotify(fdnamemap[i],lntosent);
 		  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
@@ -254,9 +274,9 @@ int main(int argc, char* argv[]){
 		if(player){
 		  printf("%s just left the game.\n",player->name);
 		  removePlayer(fdnamemap[i],mylist);
-		  FILE *file = fopen(fdnamemap[i],"w+");
-		  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		  fclose(file);
+		  //FILE *file = fopen(fdnamemap[i],"w+");
+		  //fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		  ////fclose(file);
 		  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 		  createlogoutnotify(fdnamemap[i],lntosent);
 		  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
@@ -299,9 +319,9 @@ int main(int argc, char* argv[]){
 		    Player * player = findPlayer(fdnamemap[i],mylist);
 		    if(player){
 		      removePlayer(fdnamemap[i],mylist);
-		      FILE *file = fopen(fdnamemap[i],"w+");
-		      fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-		      fclose(file);
+		      //FILE *file = fopen(fdnamemap[i],"w+");
+		      //fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+		      //fclose(file);
 		      
 		      // Broadcast the logout to other clients
 		      unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
@@ -358,9 +378,9 @@ int main(int argc, char* argv[]){
 		      Player * player = findPlayer(lr->name,mylist);
 		      if(player){
 			removePlayer(fdnamemap[i],mylist);
-			FILE *file = fopen(fdnamemap[i],"w+");
-			fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			fclose(file);
+			//FILE *file = fopen(fdnamemap[i],"w+");
+			//fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			//fclose(file);
 			
 			// Broadcasting the logout notify to other client
 			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
@@ -448,9 +468,9 @@ int main(int argc, char* argv[]){
 			  Player * player = findPlayer(fdnamemap[i],mylist);
 			  if(player){
 			    removePlayer(fdnamemap[i],mylist);
-			    FILE *file = fopen(fdnamemap[i],"w+");
-			    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			    fclose(file);
+			    //FILE *file = fopen(fdnamemap[i],"w+");
+			    //fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			    //fclose(file);
 			    
 			    // Broadcast to other clients
 			    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
@@ -503,9 +523,9 @@ int main(int argc, char* argv[]){
 			Player * player = findPlayer(fdnamemap[i],mylist);
 			  if(player){
 			    removePlayer(fdnamemap[i],mylist);
-			    FILE *file = fopen(fdnamemap[i],"w+");
-			    fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			    fclose(file);
+			    //FILE *file = fopen(fdnamemap[i],"w+");
+			    //fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			    //fclose(file);
 			    
 			    // Broadcast to other clients
 			    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
@@ -556,9 +576,9 @@ int main(int argc, char* argv[]){
 			Player * player = findPlayer(fdnamemap[i],mylist);
 			if(player){
 			  removePlayer(fdnamemap[i],mylist);
-			  FILE *file = fopen(fdnamemap[i],"w+");
-			  fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			  fclose(file);
+			  //FILE *file = fopen(fdnamemap[i],"w+");
+			  //fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			  //fclose(file);
 			  
 			  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 			  createlogoutnotify(fdnamemap[i],lntosent);
@@ -604,9 +624,9 @@ int main(int argc, char* argv[]){
 			FD_CLR(i,&login);
 			FD_CLR(i,&master);
 			removePlayer(fdnamemap[i],mylist);
-			FILE *file = fopen(fdnamemap[i],"w+");
-			fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			fclose(file);
+			//FILE *file = fopen(fdnamemap[i],"w+");
+			//fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
+			//fclose(file);
 			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
 			createlogoutnotify(fdnamemap[i],lntosent);
 			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
