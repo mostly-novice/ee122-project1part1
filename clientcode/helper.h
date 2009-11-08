@@ -131,7 +131,10 @@ int handleattack(char * victim, int sock){
 int handlespeak(char * m, int sock){
  // Header
 
-  unsigned int payloadLength = strlen(m) + 1 + 4 - ((strlen(m)+1) % 4);
+  unsigned int payloadLength = strlen(m) + 1;
+  if(payloadLength%4){
+    payloadLength = 4 - (payloadLength % 4);
+  }
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
 
   //msg = (char *) malloc(sizeof(char)*(strlen(m)+1));
@@ -141,8 +144,8 @@ int handlespeak(char * m, int sock){
   unsigned int totalMessageLength = payloadLength + 4;
 
   hdr->version = 0x4;
-  hdr->len = htons(totalMessageLength+300);
-  hdr->msgtype = SPEAK+10;
+  hdr->len = htons(totalMessageLength);
+  hdr->msgtype = SPEAK;
 
   unsigned char * header_c = (unsigned char *) hdr;
   unsigned char tosent[totalMessageLength];
