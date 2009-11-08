@@ -117,8 +117,7 @@ int main(int argc, char* argv[]){
     struct sockaddr_in sin;
     memset(&sin, 0, sizeof(sin));
 
-    printf("%d\n",argc);
-    if(argc != 3){ printf("Usage: ./server -t <server TCP port> -u <server UDP port");  exit(0);}
+    if(argc != 5){ printf("Usage: ./server -t <server TCP port> -u <server UDP port");  exit(0);}
 
     // Initilizations
     int c;
