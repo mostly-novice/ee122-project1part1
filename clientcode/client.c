@@ -7,9 +7,9 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "header.h"
-#include "helper.h"
 #include "messages.h"
 #include "aux.h"
 
@@ -19,10 +19,6 @@
 // Flags
 #define HEADER 0
 #define PAYLOAD 1
-
-// Debugging variables
-int mc; // malloc counter
-int fc; // free counter
 
 typedef struct P{
   char name[10];
@@ -146,9 +142,7 @@ Node * freePlayers(LinkedList * list)
       curr = list->head;
       list->head = curr->next;
       free(curr->datum);
-      fc++;
       free(curr);
-      fc++;
     }
 
 }
@@ -161,23 +155,14 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   object->y = y;
 }
 
-// Printing out the relevant statistics
-void printStat(){
-  printf("\n");
-  printf("Number of mallocs:%d\n",mc);
-  printf("Number of frees:%d\n",fc);
-  printf("\n");
-}
-
+#include "helper.h"
 #include "payloadHelper.h"
 
 int main(int argc, char* argv[]){
 
   // Model Variables
   Player * self = (Player *) malloc(sizeof(Player)); // Remember to free this
-  mc++; // Debugging memory leak
   LinkedList * mylist = (LinkedList *) malloc (sizeof(LinkedList));
-  mc++;
   mylist->head = NULL;
   mylist->tail = NULL;
   Node * p;
@@ -188,10 +173,15 @@ int main(int argc, char* argv[]){
   // Connection variables
   int udpsock;
   int tcpsock;
+
   int serverIP;
-  int serverPort;
+  int serverPort;   // This is a TCP Port
+
+  int dbserverIP;   // Server to store the state
+  int dbserverport; // This is a UDP Port
+
   int trackerIP;
-  int trackerPort;
+  int trackerPort;  // This is a UDP Port
 
   int done = 0;
   int status;
@@ -202,8 +192,19 @@ int main(int argc, char* argv[]){
   fd_set readfds;
   fd_set writefds;
 
-  struct sockaddr_in sin;
-  memset(&sin, 0, sizeof(sin));
+  struct sockaddr_in trackersin;
+  memset(&trackersin, 0, sizeof(trackersin));
+
+  struct sockaddr_in serversin;
+  memset(&serversin, 0, sizeof(serversin));
+
+  struct sockaddr_in dbserversin;
+  memset(&dbserversin, 0, sizeof(dbserversin));
+
+  message_record ** message_list = malloc(sizeof(*message_list)*50);
+
+  srand(time(NULL));
+  int currentID = rand()%100;
 
   if(argc < 4){ printf("Usage: ./client -s <tracker IP address> -p <tracker port>"); exit(0);}
 
@@ -231,14 +232,14 @@ int main(int argc, char* argv[]){
 
   tcpsock = socket(AF_INET, SOCK_STREAM, 0);
   udpsock = socket(AF_INET, SOCK_DGRAM, 0);
-  if(udpsock < 0 || tcp < 0){
+  if(udpsock < 0 || tcpsock < 0){
     perror("socket() failed\n");
     abort();
   }
 
-  sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = inet_addr(trackerIP);
-  sin.sin_port = htons(trackerPort);
+  trackersin.sin_family = AF_INET;
+  trackersin.sin_addr.s_addr = inet_addr(trackerIP);
+  trackersin.sin_port = htons(trackerPort);
 
   show_prompt();
 
@@ -279,10 +280,13 @@ int main(int argc, char* argv[]){
 	}
 	
 	strcpy(self->name,arg);
-	if(!udpdone){
-	  handleudplogin(name,udpsock,sin);
+	if(!udpdone){ // If we don't have a connection yet
+	  // Send a storage_location_request
+	  sendslrequest(self->name,udpsock,&trackersin,currentID);
+	  currentID++;
+	} else {
+	  int status = handlelogin(name,udpsock);
 	}
-	//int status = handlelogin(name,sock);
 
       } else if(strcmp(command,"move") == 0){ // MOVE
 	char* direction = arg;
@@ -301,7 +305,7 @@ int main(int argc, char* argv[]){
 	  printf("! Invalid direction: %s\n", arg);
 	  continue;
 	}
-	int status = handlemove(d,sock);
+	int status = handlemove(d,tcpsock);
       } else if(strcmp(command,"attack") == 0){ // ATTACK
 	char* victimname = arg;
 	if(strcmp(victimname,self->name)== 0){
@@ -327,7 +331,7 @@ int main(int argc, char* argv[]){
 
 	if(!isvisible){ on_not_visible(); continue;}
 
-	int status = handleattack(victimname,sock);
+	int status = handleattack(victimname,tcpsock);
 
       } else if(strcmp(command,"speak") == 0){
 
@@ -335,7 +339,7 @@ int main(int argc, char* argv[]){
 
 	// Check the message
 	if(!check_player_message(m)){ printf("! Invalid text message.\n"); show_prompt(); continue;}
-	if(handlespeak(m,sock)){ perror("handlespeak"); }
+	if(handlespeak(m,tcpsock)){ perror("handlespeak"); }
 	
 	
       } else if(strcmp(command,"logout") == 0){
@@ -345,7 +349,7 @@ int main(int argc, char* argv[]){
 	  show_prompt();
 	  continue;
 	}
-	if (handlelogout(self->name,sock) < 0){ perror("handlelogout");}
+	if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
 	free(buffer);
 	free(self);
 	freePlayers(mylist); // Free every player in the list
@@ -378,7 +382,7 @@ int main(int argc, char* argv[]){
 
     } else if (FD_ISSET(udpsock, &readfds)){
       unsigned char read_buffer[4096];
-      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,&sin,sizeof(sin));
+      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,&trackersin,sizeof(trackersin));
       if (read_bytes < 0){
 	perror("Handling data from UDP sock: read_bytes == -1");
       }
@@ -388,11 +392,10 @@ int main(int argc, char* argv[]){
 	struct storage_location_response * slr = (struct storage_location_response*) read_buffer;
 
 	// Need to send the server the player_state_request
-	struct sockaddr_in sin2;
-	sin2.sin_family = AF_INET;
-	sin2.sin_addr.s_addr = ntohl(slr->server_ip);
-	sin2.sin_port = ntohs(slr->udpport);;
-	sendpsrequest(udpsock,&sin2,currentID);
+	dbserversin.sin_family = AF_INET;
+	dbserversin.sin_addr.s_addr = slr->server_ip;
+	dbserversin.sin_port = slr->udpport;
+	sendpsrequest(self->name,udpsock,&dbserversin,currentID);
 
 
 
@@ -404,7 +407,7 @@ int main(int argc, char* argv[]){
 	initialize(self,psr->name,psr->hp,psr->exp,psr->x,psr->y);
 
 	// Prepare the data to send the server_area_request
-	sendsarequest(self->x,self->y,udpsock,&sin,currentID);
+	sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
 
 
 
@@ -430,7 +433,7 @@ int main(int argc, char* argv[]){
 	  free(self);
 	  free(mylist);
 	  
-	  close(sock);
+	  close(tcpsock);
 	  on_client_connect_failure();
 	  abort();
 	}
@@ -440,11 +443,6 @@ int main(int argc, char* argv[]){
 	
       } else if (msgtype == SAVE_STATE_RESPONSE){
 	struct player_state_response * ssr = (struct player_state_response *) read_buffer;
-	
-	// Check for duplicates ID
-
-	// Prepare the data to send the server_area_request
-	sendsarequest(udpsock,&sin,currentID);
       }
 
 
@@ -453,14 +451,14 @@ int main(int argc, char* argv[]){
        * Handling data from TCP sock
        *
        */
-    } else if (FD_ISSET(sock, &readfds)){ // Receiving from sock
+    } else if (FD_ISSET(tcpsock, &readfds)){ // Receiving from sock
       // Block and wait for response from the server
       unsigned char read_buffer[4096];
       int expected_data_len = sizeof(read_buffer);
       unsigned char *p = (char*) read_buffer; // Introduce a new pointer
       int offset = 0;
 
-      int read_bytes = recv(sock,read_buffer,expected_data_len,0);
+      int read_bytes = recv(tcpsock,read_buffer,expected_data_len,0);
       if (read_bytes == 0){ // Disconnected from the server
 	// Free memory
 	freePlayers(mylist);

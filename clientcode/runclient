@@ -1,0 +1,4 @@
+gcc -w -lnsl -lsocket -o client client.c;
+cp client ../testArea/;
+cd ../testArea/;
+./client -s 127.0.0.1 -p 1234;

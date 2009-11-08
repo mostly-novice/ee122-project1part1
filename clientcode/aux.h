@@ -1,3 +1,8 @@
+typedef struct M{
+  unsigned int ip;
+  unsigned int id;
+} message_record;
+
 int isVisible(int x1, int y1, int x2, int y2){
   return (abs(x1 - x2)<=5 && abs(y1 - y2)<=5);
 }
