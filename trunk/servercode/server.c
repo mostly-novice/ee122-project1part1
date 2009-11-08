@@ -205,8 +205,10 @@ int main(int argc, char* argv[]){
         // run through the existing connections looking for data to read
         int i;
         for(i=0; i<= fdmax; i++){
-            printf("processing %d\n",i);
             if (FD_ISSET(i,&readfds)){
+                printf("%d is being processed\n",i);
+                printf("%d is the UDP Listener\n",udplistener);
+
                 if (currenttime-lasttime < 5){
                     timeout = 0;
                 }
