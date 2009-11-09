@@ -126,7 +126,6 @@ struct player_state_response {
     unsigned int exp;
     unsigned char x;
     unsigned char y;
-    unsigned char paddding[3];
 }__attribute__((packed));
 
 struct save_state_request {
