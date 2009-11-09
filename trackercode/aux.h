@@ -1,3 +1,4 @@
+
 #include <math.h>
 
 int ceiling(double x){
@@ -37,11 +38,11 @@ int initsr(server_record ** sr_array, char * configpath){
       sr_array[i]->max_x = (99/count)*(i+1)-1;
     }
 
-    /* printf("server_ip:%d\n", sr_array[i]->ip); */
-/*     printf("tcp_port:%d\n", sr_array[i]->tcp_port); */
-/*     printf("udp_port:%d\n", sr_array[i]->udp_port); */
-/*     printf("min_x:%d\n", sr_array[i]->min_x); */
-/*     printf("max_x:%d\n", sr_array[i]->max_x); */
+    printf("server_ip:%d\n", sr_array[i]->ip);
+    printf("tcp_port:%d\n", sr_array[i]->tcp_port);
+    printf("udp_port:%d\n", sr_array[i]->udp_port);
+    printf("min_x:%d\n", sr_array[i]->min_x);
+    printf("max_x:%d\n", sr_array[i]->max_x);
   }
 
   // Closing the file
