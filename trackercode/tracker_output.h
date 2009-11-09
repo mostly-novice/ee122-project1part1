@@ -17,7 +17,7 @@ void on_malformed_udp(int type){
   fflush(stdout);
 }
 
-void on_udp_duplicate(unsigned int ipaddr) {
+void on_udp_duplicate(unsigned int ipaddr){
   printf("Received duplicate packet from: %x.\n",ipaddr);
   fflush(stdout);
 }
