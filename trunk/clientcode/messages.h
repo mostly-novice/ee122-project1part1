@@ -115,6 +115,11 @@ static inline void on_invalid_state(const int error_code)
   show_prompt();
 }
 
+static inline void on_receive_server_area_response(int min_x, int max_x, int min_y, int max_y)
+{
+  fprintf(stdout,"Playable Area: MINX:%d, MAXX:%d, MINY:%d, MAXY:%d\n",min_x,max_x,min_y,max_y);
+  show_prompt();
+}
 
 /**************************************************************************
   * Message functions for the server

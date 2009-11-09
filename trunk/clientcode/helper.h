@@ -35,7 +35,7 @@ int handlelogin(Player * self,int sock){
     else tosent[j] = payload_c[j-4];
   }
 
-  printf("Sending login request");
+  printf("Sending login request\n");
   printMessage(tosent,24);
 
   // Send a login message to the server

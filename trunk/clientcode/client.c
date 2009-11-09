@@ -325,6 +325,10 @@ int main(int argc, char* argv[]){
 	  printf("Attempting to switch server.\n");
 	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
 	  currentID++;
+
+	  close(tcpsock);
+	  isLogin = 0; // FALSE
+	  tcpsock = socket(AF_INET, SOCK_STREAM, 0);
 	} else {
 	  int status = handlemove(d,tcpsock);
 	}
@@ -405,24 +409,27 @@ int main(int argc, char* argv[]){
       char msgtype = read_buffer[0];
       if (msgtype == STORAGE_LOCATION_RESPONSE){
 	struct storage_location_response * slr = (struct storage_location_response*) read_buffer;
+	
+	printf("RECEIVED STORAGE LOCATION RESPONSE\n");
+	show_prompt();
 
 	// Need to send the server the player_state_request
 	dbserversin.sin_family = AF_INET;
 	dbserversin.sin_addr.s_addr = slr->server_ip;
 	dbserversin.sin_port = slr->udpport;
 
+	fprintf(stdout, "DBServer addr:%s\n",inet_ntoa(dbserversin.sin_addr));
+	fprintf(stdout, "DBServer UDP port:%d\n",ntohs(dbserversin.sin_port));
+
 	sendpsrequest(self->name,udpsock,&dbserversin,currentID);
 	currentID++;
 
       } else if (msgtype == PLAYER_STATE_RESPONSE){
-	// We got a player state response
 	struct player_state_response * psr = (struct player_state_response *) read_buffer;
 	// Check whether this data is malformed
-	
-	// Initiate the player states
+	printf("RECEIVED STORAGE LOCATION RESPONSE\n");
+	show_prompt();
 	initialize(self,psr->name,ntohl(psr->hp),ntohl(psr->exp),psr->x,psr->y);
-
-	// Prepare the data to send the server_area_request
 	sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
 	currentID++;
 
@@ -432,7 +439,7 @@ int main(int argc, char* argv[]){
 	// Check if the data is malformed
 	min_x = sares->min_x; max_x = sares->max_x; min_y = sares->min_y; max_y = sares->max_y;
 
-	fprintf(stdout,"Playable Area: MINX:%d, MAXX:%d, MINY:%d, MAXY:%d\n",min_x,max_x,min_y,max_y);
+	on_receive_server_area_response(min_x,max_x,min_y,max_y);
 
 	struct sockaddr_in tcpsin;
 	tcpsin.sin_family = AF_INET;
@@ -441,12 +448,13 @@ int main(int argc, char* argv[]){
 
 	// Establish connection
 	if(connect(tcpsock,(struct sockaddr *) &tcpsin, sizeof(tcpsin)) < 0){
-	  perror("client - connect");
+	  perror("client - connect returns -1");
 	  freePlayers(mylist);
 	  free(self);
 	  free(mylist);
-	  shutdown(tcpsock,2);
 	}
+
+	printf("TCP Connection Established\n");
 
 	int status = handlelogin(self->name,tcpsock);
 
