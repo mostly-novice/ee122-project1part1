@@ -12,7 +12,7 @@
 #include "header.h"
 #include "messages.h"
 
-#DEFINE MAX_MESSAGE_RECORD 50;
+#define MAX_MESSAGE_RECORD 50
 
 typedef struct sr{
   unsigned int ip;
@@ -71,8 +71,6 @@ int findDup(message_record ** mr_array,int id, int ip){
   return -1;
 }
 
-int resend(int sock,
-
 int main(int argc, char* argv[]){
   int listener;
   int myport;
@@ -82,7 +80,7 @@ int main(int argc, char* argv[]){
   server_record ** sr_array = malloc(sizeof(*sr_array)*100);
   int server_count;
 
-  message_record ** mr_array = malloc(sizeof(*msr_array)*MAX_MESSAGE_RECORD);
+  message_record ** mr_array = malloc(sizeof(*mr_array)*MAX_MESSAGE_RECORD);
   int oldest = 0;
 
   fd_set master;
@@ -130,7 +128,6 @@ int main(int argc, char* argv[]){
   } else { printf("Listenning sock is ready. Sock: %d\n",listener);}
   
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(myport);
 
   int optval = 1;
@@ -173,12 +170,13 @@ int main(int argc, char* argv[]){
 	  } else {
 	    // Recording the message for duplicate checking
 	    fprintf(stdout,"RECEIVED: ");
-	    printMessage(read_buffer);
+	    printMessage(read_buffer,read_bytes);
 	    char msgtype = read_buffer[0];
 	    int ip = clientaddr.sin_addr.s_addr;
 
 	    // Handling duplicates
-	    int dup = findDup(mr_array,read_buffer,ip); // return the index of the duplicate message
+	    //int dup = findDup(mr_array,read_buffer,ip); // return the index of the duplicate message
+	    int dup = -1;
 	    if(dup>=0){ // Found a duplicate
 	      if(msgtype==STORAGE_LOCATION_REQUEST)
 		sendto(i,mr_array[dup]->message,
@@ -212,10 +210,10 @@ int main(int argc, char* argv[]){
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
 	      new_mr->id = slr->id;
 	      new_mr->message = (unsigned char*) malloc (sizeof(char)*STORAGE_LOCATION_RESPONSE_SIZE);
-	      memcpy(new_mr->message,(char*),slrespond);
+	      memcpy(new_mr->message,(char*)slrespond,STORAGE_LOCATION_RESPONSE_SIZE);
 	      if (mr_array[oldest]){
-		free(mr->array[oldest]->message);
-		free(mr->array[oldest]);
+		free(mr_array[oldest]->message);
+		free(mr_array[oldest]);
 	      }
 	      mr_array[oldest] = new_mr;
 	      oldest++;
@@ -250,12 +248,12 @@ int main(int argc, char* argv[]){
 	      printf("RECORDING THE SERVER MESSAGE");
 	      message_record * new_mr = (message_record*) malloc(sizeof(message_record));
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
-	      new_mr->id = slr->id;
+	      new_mr->id = sareq->id;
 	      new_mr->message = (unsigned char*) malloc (sizeof(char)*SERVER_AREA_RESPONSE_SIZE);
-	      memcpy(new_mr->message,(char*),slrespond);
+	      memcpy(new_mr->message,(char*)sarespond,SERVER_AREA_RESPONSE_SIZE);
 	      if (mr_array[oldest]){
-		free(mr->array[oldest]->message);
-		free(mr->array[oldest]);
+		free(mr_array[oldest]->message);
+		free(mr_array[oldest]);
 	      }
 	      mr_array[oldest] = new_mr;
 	      oldest++;

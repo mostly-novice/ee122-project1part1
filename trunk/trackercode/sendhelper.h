@@ -9,9 +9,6 @@ void createslrespond(server_record * sr, int id, char buffer[]){
 
   printf("id:%d\n",sr->ip);
   printf("port:%d\n",sr->udp_port);
-  
-  printf("slr->id:%d\n",slr->id);
-  printf("slr->udpport:%d\n",slr->udpport);
 
   unsigned char*tosent = (unsigned char *) slr;
   printMessage(slr,STORAGE_LOCATION_RESPONSE_SIZE);
