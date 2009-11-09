@@ -175,7 +175,8 @@ int main(int argc, char* argv[]){
 	    int ip = clientaddr.sin_addr.s_addr;
 
 	    // Handling duplicates
-	    //int dup = findDup(mr_array,read_buffer,ip); // return the index of the duplicate message
+	    int id = (read_buffer[1]<<24)+(read_buffer[2]<<16)+(read_buffer[3]<<8)+read_buffer[4];
+	    int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
 	    int dup = -1;
 	    if(dup>=0){ // Found a duplicate
 	      if(msgtype==STORAGE_LOCATION_REQUEST)
