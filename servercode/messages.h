@@ -135,13 +135,20 @@ static inline int check_player_name(const char *name)
 {
   size_t i;
   /* Must not be null. */
-  if (!name[0]) return 0;
+  if (!name[0]){
+	  return 0;
+	  printf("broke test 1\n");
+  }
   for (i = 0; i <= EE122_MAX_NAME_LENGTH; ++ i) {
     if (!name[i]) return 1;
     /* Must not contain a non-alphanumeric character. */
-    if (!isalnum(name[i])) return 0;
+    if (!isalnum(name[i])){
+	    return 0;
+	    printf("broke test 2\n");
+    }
   }
   /* Must be null terminated. */
+  printf("broke test 3\n");
   return 0;
 }
 

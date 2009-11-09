@@ -1,12 +1,6 @@
 #include <time.h>
 #include "sendhelper.h"
 
-#define LOGIN_REPLY_SIZE 16
-#define MOVE_NOTIFY_SIZE 24  
-#define ATTACK_NOTIFY_SIZE 32
-#define SPEAK_NOTIFY_SIZE 20
-#define LOGOUT_NOTIFY_SIZE 16
-#define INVALID_STATE_SIZE 8
 
 //player = process_login_request(0,i,fdmax,login,lr->name,lr->hp,lr->exp,lr->x,lr->y,mylist);
 Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login, unsigned char * n,
@@ -17,34 +11,12 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
     // make a new instance of Player
     Player * newplayer = (Player *) malloc(sizeof(Player));
 
-    srand(time(NULL));
-
-    // randomize stats
-    //int hp = 100 + rand()%21;
-    //int exp = 0;
-    //int x = rand()%100;
-    //int y = rand()%100;
-
     memcpy(newplayer->name,name,10);
     newplayer->hp = hp;
     newplayer->exp = exp;
     newplayer->x = x;
     newplayer->y = y;
 
-    //check if the file with that name exists
-    //  FILE * file = fopen(name,"r");
-    //  if(file){ // if file exists
-    //    fscanf(file,"%d%d%d%d",&(newplayer->hp),&(newplayer->exp),&(newplayer->x),&(newplayer->y));
-    //    fclose(file);
-    //  } else {
-    FILE * file2 = fopen(name,"w+");
-    if(file2 == NULL)	// open a new file with overwrite
-        perror("file open");
-
-    // Write to file
-    fprintf(file2,"%d %d %d %d",newplayer->hp,newplayer->exp,newplayer->x,newplayer->y);
-    fclose(file2);
-    //} 
     unsigned char lrtosent[LOGIN_REPLY_SIZE];
     unsigned char mntosent[MOVE_NOTIFY_SIZE];
     createloginreply(errorcode,
@@ -206,13 +178,14 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id){
     hp = 100 + rand()%21;
     exp = 0;
     y = rand()%100;
-    x = 22;
+    x = rand()%100;
     
     // Add this entry to the db
     FILE * file2 = fopen(name,"w+"); // open a new file with overwrite
     if(file2 == NULL) perror("file open");
     
     // Write to file
+    printf("Writing HP:%d, EXP:%d, X:%d, Y:%d\n",hp,exp,x,y);
     fprintf(file2,"%d %d %d %d",hp,exp,x,y);
     fclose(file2);
   }
