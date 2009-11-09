@@ -1,0 +1,6 @@
+(1) speak is broken
+(2) login twice with same name = segfault
+(3) do we need to be notified when we try and attack ourselves? login kevin, attack kevin -- 
+(4) login with >3 clients, the command> prompt goes away
+(5) Attack someone to death -- causes all clients to crash
+(6) when logging out of a server  (but not out of game) should you broadcast a logout?
