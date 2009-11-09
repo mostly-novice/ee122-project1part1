@@ -93,7 +93,6 @@ int main(int argc, char* argv[]){
     int status;
 
     struct sockaddr_in udpsin;
-    udpsin.sin_family = AF_INET;
     int sin_len;
 
     // Select
@@ -165,6 +164,14 @@ int main(int argc, char* argv[]){
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = INADDR_ANY;
     sin.sin_port = htons(myport);
+
+    udpsin.sin_family = AF_INET;
+    udpsin.sin_addr.s_addr = INADDR_ANY;
+    udpsin.sin_port = htons(myudpport);
+
+    
+    printf("tcp port: %d",myport);
+    printf("myudpport: %d",myudpport);
 
     int optval = 1;
     if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
