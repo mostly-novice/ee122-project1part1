@@ -35,9 +35,6 @@ int handlelogin(Player * self,int sock){
     else tosent[j] = payload_c[j-4];
   }
 
-  printf("Sending login request\n");
-  printMessage(tosent,24);
-
   // Send a login message to the server
   int bytes_sent = send(sock,tosent,24,0);
   if (bytes_sent < 0) perror("send failed");
@@ -74,7 +71,6 @@ int handlemove(unsigned char d, int sock){
   if (bytes_sent < 0){
     perror("send failed.\n");
   }
-
   // Freeing the pointers;
   free(hdr);
   free(payload);
