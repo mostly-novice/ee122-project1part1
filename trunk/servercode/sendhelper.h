@@ -120,21 +120,27 @@ unsigned char * createspeaknotify(unsigned char* broadcaster,
   free(hdr);
 }
 
-unsigned char * createlogoutnotify(unsigned char* name, char buffer[]){
+unsigned char * createlogoutnotify(Player* player,char buffer[]){
   int i = 0;
   int j;
   // Header
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
-  struct logout_notify * payload = (struct logout_notify *) malloc(sizeof(int)*3); // remember to free this
+  struct logout_notify * payload = (struct logout_notify *) malloc(sizeof(int)*5); // remember to free this
   hdr->version = 0x04;
-  hdr->len = htons(0x00010);
+  hdr->len = htons(0x00018);
   hdr->msgtype = LOGOUT_NOTIFY;
-  memcpy(payload->name,name,10);
-  memset(payload->padding,0,2);
+
+  printf("player name inside createlogoutnotify:%s\n",player->name);
+  strcpy(payload->name,player->name);
+  payload->hp = player->hp;
+  payload->exp = player->exp;
+  payload->x = player->x;
+  payload->y = player->y;
+
   unsigned char * payload_c = (unsigned char*) payload;
   unsigned char * header_c = (unsigned char *) hdr;
 
-  for(j = 0; j < 16; j++){
+  for(j = 0; j < 24; j++){
     if(j<4) buffer[j] = header_c[j];
     else buffer[j] = payload_c[j-4];
   }
@@ -169,13 +175,13 @@ void createinvalidstate(unsigned char error_code, char buffer[]){
 
 void createpsr(char *name, unsigned int hp, unsigned int exp, unsigned char x, unsigned char y, unsigned int id,char buffer[]){
   struct player_state_response * psr = (struct player_state_response *) malloc(sizeof(struct player_state_response));
-  printf("Stats:%d %d %d %d\n", hp,exp,x,y);
+  printf("Stats inside createpsr:hp:%d exp:%d x:%d y:%d\n", hp,exp,x,y);
 
   strcpy(psr->name,name);
   psr->message_type = PLAYER_STATE_RESPONSE;
   psr->id   = id;
-  psr->hp   = htonl(hp);
-  psr->exp  = htonl(exp);
+  psr->hp   = hp;
+  psr->exp  = exp;
   psr->x    = x;
   psr->y    = y;
 

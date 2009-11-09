@@ -57,6 +57,7 @@ void cleanBuffer(bufferdata ** fdbuffermap,int i){
 }
 
 void cleanNameMap(char ** fdnamemap,int i){
+	printf("cleaning up name mapp\n");
   if(fdnamemap[i]){
     free(fdnamemap[i]);
     fdnamemap[i] = 0;
@@ -274,7 +275,8 @@ int main(int argc, char* argv[]){
 	  struct header * hdr;
 
 	  int read_bytes = recv(i,read_buffer,expected_data_len, 0);
-	  if (read_bytes <= 0){
+
+	  if (read_bytes <= 0){ // RECV FU*KEDUP
 	    close(i); // bye!
 	    FD_CLR(i,&login);
 	    FD_CLR(i,&master); // remove from the master set
@@ -283,6 +285,7 @@ int main(int argc, char* argv[]){
 	    if(read_bytes == 0){
 	      printf("Socket %d hung up\n",i);
 	      if (fdnamemap[i]){
+		      printf("We think we're dealing with player: %s\n",fdnamemap[i]);
 		Player * player = findPlayer(fdnamemap[i],mylist);
 		if(player){
 		  printf("%s just left the game.\n",player->name);
@@ -306,7 +309,7 @@ int main(int argc, char* argv[]){
 		  //fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
 		  ////fclose(file);
 		  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-		  createlogoutnotify(fdnamemap[i],lntosent);
+		  createlogoutnotify(player,lntosent);
 		  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 		}
 	      }
@@ -353,7 +356,7 @@ int main(int argc, char* argv[]){
 
 		      // Broadcast the logout to other clients
 		      unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-		      createlogoutnotify(fdnamemap[i],lntosent);
+		      createlogoutnotify(player,lntosent);
 		      broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 		    }
 		    cleanNameMap(fdnamemap,i);
@@ -371,6 +374,7 @@ int main(int argc, char* argv[]){
 		  // Update the correct parameters
 		  bufferd->buffer_size -= HEADER_LENGTH;
 		  bufferd->desire_length = ntohs(hdr->len)-HEADER_LENGTH;
+		  printf("hdr->len:%d\n",hdr->len);
 		  bufferd->flag = PAYLOAD;
 		}
 
@@ -384,6 +388,7 @@ int main(int argc, char* argv[]){
 		//printMessage(payload_c,ntohs(hdr->len));
 
 		if(hdr->msgtype == LOGIN_REQUEST){ // LOGIN REQUEST
+			printf("we got a login request!!\n");
 		  if (FD_ISSET(i,&login)){ // Is he typing in login again?
 		    // Send invalid state with error code = 1
 		    unsigned char ivstate[8];
@@ -394,10 +399,19 @@ int main(int argc, char* argv[]){
 		      abort();
 		    }
 		  } else { // If he is not logged in
+			  printf("this guy isn't logged in -- let me go ahead and do that\n");
 		    struct login_request * lr = (struct login_request *) payload_c;
 
+
+		    printMessage(lr,sizeof(*lr));
+
+
+
 		    // Check if name is good
+		    printf("checking player name\n");
 		    if(check_player_name(lr->name)==0){
+		      printf("checking player name (%s) returned 0 !!! ahhhhh!\n",lr->name);
+		      exit(0);
 		      // Closing socket
 		      close(i);
 		      FD_CLR(i,&login);
@@ -406,13 +420,10 @@ int main(int argc, char* argv[]){
 		      Player * player = findPlayer(lr->name,mylist);
 		      if(player){
 			removePlayer(fdnamemap[i],mylist);
-			//FILE *file = fopen(fdnamemap[i],"w+");
-			//fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			//fclose(file);
 
 			// Broadcasting the logout notify to other client
 			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-			createlogoutnotify(fdnamemap[i],lntosent);
+			createlogoutnotify(player,lntosent);
 			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 			cleanNameMap(fdnamemap,i);
 		      }
@@ -420,11 +431,13 @@ int main(int argc, char* argv[]){
 
 		      break;
 		    }
+			    printf("checking player name returned NON-zero -- GOOD :)\n");
 
 		    // Check if the name is already used
 		    if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
 
 		      // Send a login request with an errorcode 1
+		      printf("entering process_login_request with values:i,fdmax,login,name,hp,exp,x,y\n",i,fdmax,login,lr->name,lr->hp,lr->exp,lr->x,lr->y);
 		      Player * newplayer = process_login_request(1,i,fdmax,login,lr->name,lr->hp,lr->exp,lr->x,lr->y,mylist);
 
 		    } else {
@@ -502,7 +515,7 @@ int main(int argc, char* argv[]){
 
 			    // Broadcast to other clients
 			    unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-			    createlogoutnotify(fdnamemap[i],lntosent);
+			    createlogoutnotify(player,lntosent);
 			    broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 
 			  } else {
@@ -557,7 +570,7 @@ int main(int argc, char* argv[]){
 
 			  // Broadcast to other clients
 			  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-			  createlogoutnotify(fdnamemap[i],lntosent);
+			  createlogoutnotify(player,lntosent);
 			  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 
 			} else {
@@ -609,7 +622,7 @@ int main(int argc, char* argv[]){
 			  //fclose(file);
 
 			  unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-			  createlogoutnotify(fdnamemap[i],lntosent);
+			  createlogoutnotify(player,lntosent);
 			  broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 			} else {
 			  fprintf(stderr,"Internal data structure error\n");
@@ -633,8 +646,11 @@ int main(int argc, char* argv[]){
 		    printMessage(spktosent,totallen);
 		    broadcast(login,i,fdmax,spktosent,totallen);
 		  }
-		} else if(hdr->msgtype == LOGOUT){ 
+		} else if(hdr->msgtype == LOGOUT){ // LOGOUT MESSAGE RECIEVED!!!!
+			printf("LOGOUT MESSAGE RECIEVED!!!!\n");
 		  if (!FD_ISSET(i,&login)){ // if not login,
+		
+			printf("Player is not logged in!!!\n");
 		    // Send invalid state
 		    unsigned char ivstate[INVALID_STATE_SIZE];
 		    createinvalidstate(0,ivstate);
@@ -644,20 +660,19 @@ int main(int argc, char* argv[]){
 		      abort();
 		    }
 
-		  } else {
+		  } else {  // Player is logged int
 		    if(fdnamemap[i]){
 		      Player * player = findPlayer(fdnamemap[i],mylist);
 		      if(player){
+
+			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
+			printf("playername: %s\n",player->name);
+			createlogoutnotify(player,lntosent);
+			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
+			removePlayer(fdnamemap[i],mylist);
 			close(i);
 			FD_CLR(i,&login);
 			FD_CLR(i,&master);
-			removePlayer(fdnamemap[i],mylist);
-			//FILE *file = fopen(fdnamemap[i],"w+");
-			//fprintf(file,"%d %d %d %d",player->hp,player->exp,player->x,player->y);
-			//fclose(file);
-			unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
-			createlogoutnotify(fdnamemap[i],lntosent);
-			broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
 			cleanNameMap(fdnamemap,i);
 			break;
 		      } else {
@@ -671,7 +686,6 @@ int main(int argc, char* argv[]){
 		  printf("We got nothing");
 		}
 		// Move the pointers
-		printf("Moving the pointer");
 		char * temp = (char*) malloc(sizeof(char)*(bufferd->buffer_size-bufferd->desire_length));
 		memcpy(temp,bufferd->buffer+bufferd->desire_length,bufferd->buffer_size-bufferd->desire_length);
 		free(bufferd->buffer);
