@@ -322,7 +322,7 @@ int main(int argc, char* argv[]){
 
 	  // Contact the tracker
 	  // Send SERVER_AREA_REQUEST
-	  printf("Attempting to switch server.\n");
+	  printf("Swithing server....\n");
 	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
 	  currentID++;
 
@@ -418,8 +418,8 @@ int main(int argc, char* argv[]){
 	dbserversin.sin_addr.s_addr = slr->server_ip;
 	dbserversin.sin_port = slr->udpport;
 
-	fprintf(stdout, "DBServer addr:%s\n",inet_ntoa(dbserversin.sin_addr));
-	fprintf(stdout, "DBServer UDP port:%d\n",ntohs(dbserversin.sin_port));
+	//fprintf(stdout, "DBServer addr:%s\n",inet_ntoa(dbserversin.sin_addr));
+	//fprintf(stdout, "DBServer UDP port:%d\n",ntohs(dbserversin.sin_port));
 
 	sendpsrequest(self->name,udpsock,&dbserversin,currentID);
 	currentID++;
@@ -454,7 +454,9 @@ int main(int argc, char* argv[]){
 	  free(mylist);
 	}
 
-	printf("TCP Connection Established\n");
+	udpdone = 1;
+
+	printf("New TCP Connection Established...\n");
 
 	int status = handlelogin(self->name,tcpsock);
 
@@ -498,7 +500,6 @@ int main(int argc, char* argv[]){
 	    // Copy the header
 	    int j;
 	    for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
-	    printMessage(header_c,4);
 
 	    hdr = (struct header *) header_c;
 	    check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
@@ -519,7 +520,6 @@ int main(int argc, char* argv[]){
 	    char payload_c[desire_length];
 	    int j;
 	    for(j = 0; j < desire_length; j++){ payload_c[j] = *(buffer+j);}
-	    printMessage(payload_c,desire_length);
 
 	    if(hdr->msgtype == LOGIN_REPLY){ // LOGIN REPLY
 	      if(isLogin) on_malformed_message_from_server();
@@ -531,13 +531,8 @@ int main(int argc, char* argv[]){
 	    } else if(hdr->msgtype == ATTACK_NOTIFY){
 	      process_attack_notify(payload_c,self,mylist);
 	    } else if(hdr->msgtype == SPEAK_NOTIFY){ // SPEAK_NOTIFY
-	      int i;
-	      for(i = 0; i < strlen(payload_c); i++){
-		sleep(5);
-		process_speak_notify(payload_c[i]);
-	      }
+	      process_speak_notify(payload_c);
 	    } else if(hdr->msgtype == LOGOUT_NOTIFY){
-	      printf("Got a logout notify.\n");
 	      process_logout_notify(payload_c,mylist);
 	    } else if(hdr->msgtype == INVALID_STATE){
 	      process_invalid_state(payload_c);
