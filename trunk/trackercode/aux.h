@@ -1,6 +1,3 @@
-
-#include <math.h>
-
 int ceiling(double x){
   return ((int)x)+1;
 }
@@ -48,4 +45,13 @@ int initsr(server_record ** sr_array, char * configpath){
   // Closing the file
   fclose(file);
   return count;
+}
+
+void printMessageRecord(message_record ** mr_array){
+  int i;
+  for(i = 0; i < 50;i++){
+    if(mr_array[i]){
+      fprintf(stdout,"Slot %d: ID:%d IP:%x",i,ntohl(mr_array[i]->id),ntohl(mr_array[i]->ip));
+    }
+  }
 }

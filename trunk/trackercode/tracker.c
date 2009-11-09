@@ -11,6 +11,7 @@
 
 #include "header.h"
 #include "messages.h"
+#include "tracker_output.h"
 
 #define MAX_MESSAGE_RECORD 50
 
@@ -171,14 +172,19 @@ int main(int argc, char* argv[]){
 	    // Recording the message for duplicate checking
 	    fprintf(stdout,"RECEIVED: ");
 	    printMessage(read_buffer,read_bytes);
+	    
+	    printMessageRecord(mr_array);
 	    char msgtype = read_buffer[0];
-	    int ip = clientaddr.sin_addr.s_addr;
+	    unsigned int ip = clientaddr.sin_addr.s_addr;
 
 	    // Handling duplicates
 	    int id = (read_buffer[1]<<24)+(read_buffer[2]<<16)+(read_buffer[3]<<8)+read_buffer[4];
 	    int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
-	    int dup = -1;
 	    if(dup>=0){ // Found a duplicate
+	      // Print out the duplicate message
+	      on_udp_duplicate(htonl(ip));
+
+	      // Resend the message based on the type
 	      if(msgtype==STORAGE_LOCATION_REQUEST)
 		sendto(i,mr_array[dup]->message,
 		       STORAGE_LOCATION_RESPONSE_SIZE,
