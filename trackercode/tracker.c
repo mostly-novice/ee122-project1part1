@@ -11,6 +11,7 @@
 
 #include "header.h"
 #include "messages.h"
+
 #include "tracker_output.h"
 
 #define MAX_MESSAGE_RECORD 50
@@ -66,7 +67,7 @@ int findDup(message_record ** mr_array,int id, int ip){
   for(i = 0; i <MAX_MESSAGE_RECORD;i++){
     message_record * mr = mr_array[i];
     if(mr){
-      if(mr->ip == ip || mr->id == id){
+      if(mr->ip == ip && mr->id == id){
 	return i;
       }
     }
@@ -81,10 +82,10 @@ int main(int argc, char* argv[]){
   int status;
   char * configpath;
   server_record ** sr_array = malloc(sizeof(*sr_array)*100);
+  message_record ** mr_array = malloc(sizeof(*mr_array)*MAX_MESSAGE_RECORD);
+
   int server_count;
 
-  message_record ** mr_array = malloc(sizeof(*mr_array)*MAX_MESSAGE_RECORD);
-  int oldest = 0;
 
   fd_set master;
   fd_set readfds;
@@ -94,7 +95,6 @@ int main(int argc, char* argv[]){
   struct sockaddr_in clientaddr;
   int sin_len;
   memset(&sin, 0, sizeof(sin));
-  memset(&clientaddr, 0, sizeof(clientaddr));
   
 
   if(argc != 5){ printf("Usage: ./tracker -f <configuration file> -p port");  exit(0);}
@@ -127,8 +127,7 @@ int main(int argc, char* argv[]){
   if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){ perror('setvbuf');}
 
   listener = socket(AF_INET, SOCK_DGRAM, 0);
-  
-if(listener < 0){
+  if(listener < 0){
     perror("socket() failed\n"); abort();
   } else { printf("Listenning sock is ready. Sock: %d\n",listener);}
   
@@ -136,8 +135,7 @@ if(listener < 0){
   sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(myport);
 
-  sin.sin_family = AF_INET;
-
+  int oldest = 0;
   int optval = 1;
   if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
     perror("Reuse failed");
@@ -148,10 +146,11 @@ if(listener < 0){
     perror("Bind failed");
     abort();
   }
-
   FD_ZERO(&readfds);
   FD_SET(listener,&readfds);
   fdmax = listener;
+  
+  int size = sizeof(clientaddr);
 
   while(1){ // main accept() lo
     int selVal = (select(fdmax+1,&readfds,NULL,NULL,NULL));
@@ -167,41 +166,45 @@ if(listener < 0){
 				    0,
 				    (struct sockaddr *) &clientaddr,
 				    &sin_len);
-
 	  if (read_bytes < 0){
 	    perror("Tracker - Recvfrom Failed - read_bytes return -1\n");
 	    close(i); // bye!
 	  } else {
-	    // Recording the message for duplicate checking
+	    char msgtype = read_buffer[0];
 	    fprintf(stdout,"RECEIVED from %s\n", inet_ntoa(clientaddr.sin_addr));
-	    printMessage(read_buffer,read_bytes);	    
+	    printMessage(read_buffer,read_bytes);
+
 	    printMessageRecord(mr_array);
 
-	    char msgtype = read_buffer[0];
 	    unsigned int ip = clientaddr.sin_addr.s_addr;
 
 	    int id = (read_buffer[1]<<24)+(read_buffer[2]<<16)+(read_buffer[3]<<8)+read_buffer[4];
+	    printf("id:%x\n",id);
+
 	    int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
-	    if(dup>=0){
+
+	    if(dup >= 0){
 	      on_udp_duplicate(htonl(ip));
 
 	      // Resend the message based on the type
-	      if(msgtype==STORAGE_LOCATION_REQUEST)
+	      if(msgtype==STORAGE_LOCATION_REQUEST){
 		sendto(i,mr_array[dup]->message,
 		       STORAGE_LOCATION_RESPONSE_SIZE,
 		       0,
 		       (struct sockaddr*)&clientaddr,
 		       sizeof(clientaddr));
-	      else if (msgtype==STORAGE_LOCATION_REQUEST)
+	      } else if (msgtype==STORAGE_LOCATION_REQUEST){
 		sendto(i,mr_array[dup]->message,
 		       SERVER_AREA_RESPONSE_SIZE,
 		       0,
 		       (struct sockaddr*)&clientaddr,
 		       sizeof(clientaddr));
+	      }
 
+	      
 	    } else if(msgtype==STORAGE_LOCATION_REQUEST){
-	      printf("ip:%x\n", ntohl(ip));
 	      struct storage_location_request * slr = (struct storage_location_request*) read_buffer;
+	      // Find the server record
 
 	      // TODO: Check the ID
 	      char * name = slr->name;
@@ -214,7 +217,6 @@ if(listener < 0){
 
 	      createslrespond(sr,ntohl(slr->id),slrespond);
 
-	      // Add this message to the message record array
 	      message_record * new_mr = (message_record*) malloc(sizeof(message_record));
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
 	      new_mr->id = slr->id;
@@ -225,7 +227,7 @@ if(listener < 0){
 		free(mr_array[oldest]);
 	      }
 	      mr_array[oldest] = new_mr;
-	      oldest++;
+	      oldest = (oldest + 1)%MAX_MESSAGE_RECORD;
 
 	      printf("Sending STORAGE_LOCATION_RESPONSE.\n");
 	      printMessage(slrespond,STORAGE_LOCATION_RESPONSE_SIZE);
@@ -243,8 +245,8 @@ if(listener < 0){
 	      }
 
 	    } else if(msgtype==SERVER_AREA_REQUEST){
+	      printMessage(read_buffer,SERVER_AREA_REQUEST_SIZE);
 	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
-
 	      // TODO: Check if the value in the package is valid
 	      int server_id = findServer(sareq->x,server_count,sr_array);
 	      server_record * sr = sr_array[server_id];
@@ -252,9 +254,7 @@ if(listener < 0){
 	      char sarespond[SERVER_AREA_RESPONSE_SIZE];
 	      memset(&sarespond,0,SERVER_AREA_RESPONSE_SIZE);
 	      createsarespond(sr,ntohl(sareq->id),sarespond);
-
-	      // Add this message to the message record array
-	      printf("RECORDING THE SERVER MESSAGE");
+	      
 	      message_record * new_mr = (message_record*) malloc(sizeof(message_record));
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
 	      new_mr->id = sareq->id;
@@ -265,7 +265,7 @@ if(listener < 0){
 		free(mr_array[oldest]);
 	      }
 	      mr_array[oldest] = new_mr;
-	      oldest++;
+	      oldest = (oldest + 1)%MAX_MESSAGE_RECORD;
 
 	      printf("Sending SERVER_AREA_RESPONSE.\n");
 	      printMessage(sarespond,SERVER_AREA_RESPONSE_SIZE);

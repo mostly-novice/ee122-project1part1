@@ -51,7 +51,7 @@ void printMessageRecord(message_record ** mr_array){
   int i;
   for(i = 0; i < 50;i++){
     if(mr_array[i]){
-      fprintf(stdout,"Slot %d: ID:%d IP:%x",i,ntohl(mr_array[i]->id),ntohl(mr_array[i]->ip));
+      fprintf(stdout,"Slot %d: ID:%d IP:%x\n",i,ntohl(mr_array[i]->id),ntohl(mr_array[i]->ip));
     }
   }
 }
