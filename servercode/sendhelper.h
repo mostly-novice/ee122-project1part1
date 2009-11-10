@@ -190,14 +190,20 @@ void createpsr(char *name, unsigned int hp, unsigned int exp, unsigned char x, u
 }
 
 void create_ss_response(int id,char success,char buffer[]){
+    printf("Processing creation of SAVE_STATE_RESPONSE with success %c and id %d\n",success,id);
     struct save_state_response * ssr = (struct save_state_response *) malloc (sizeof(struct save_state_response));
 
     ssr->message_type = SAVE_STATE_RESPONSE;
-    ssr->id = id;
+    ssr->id = id;	// SHOULD THIS BE HTONL() ??
     ssr->error_code = success;
-
     char * toreturn = (char*) ssr;
-    memcpy(buffer,toreturn,SAVE_STATE_RESPONSE_SIZE);
+    int j;
+
+    // Copy the 8 bytes by hand -- to ensure no mistake is made
+    for(j = 0; j < 8; j++){
+        buffer[j] = toreturn[j];
+    }
+    //strcpy(buffer,toreturn);//,SAVE_STATE_RESPONSE_SIZE);
 }
 
 int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expected){
@@ -230,7 +236,8 @@ int unicast(int sock, unsigned char * tosent, int expected){
 }
 
 int udpunicast(int udpsock, struct sockaddr_in targetsin, unsigned char * tosent, int expected){
-  printf("Sending(udpunicast)...");
+  printf("Sending(udpunicast) of size %d...",expected);
+//  printf("Message sent: %x",tosent);
   printMessage(tosent,expected);
   int bytes_sent = sendto(udpsock, tosent,expected,0,(struct sockaddr *) &targetsin,sizeof(targetsin));
   if (bytes_sent < 0){
