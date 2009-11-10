@@ -65,8 +65,10 @@ int findDup(message_record ** mr_array,int id, int ip){
   int i;
   for(i = 0; i <MAX_MESSAGE_RECORD;i++){
     message_record * mr = mr_array[i];
-    if(mr->ip == ip || mr->id == id){
-      return i;
+    if(mr){
+      if(mr->ip == ip || mr->id == id){
+	return i;
+      }
     }
   }
   return -1;
@@ -92,6 +94,7 @@ int main(int argc, char* argv[]){
   struct sockaddr_in clientaddr;
   int sin_len;
   memset(&sin, 0, sizeof(sin));
+  memset(&clientaddr, 0, sizeof(clientaddr));
   
 
   if(argc != 5){ printf("Usage: ./tracker -f <configuration file> -p port");  exit(0);}
@@ -124,12 +127,16 @@ int main(int argc, char* argv[]){
   if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){ perror('setvbuf');}
 
   listener = socket(AF_INET, SOCK_DGRAM, 0);
-  if(listener < 0){
+  
+if(listener < 0){
     perror("socket() failed\n"); abort();
   } else { printf("Listenning sock is ready. Sock: %d\n",listener);}
   
   sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(myport);
+
+  sin.sin_family = AF_INET;
 
   int optval = 1;
   if (setsockopt(listener,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval)) < 0){
@@ -141,22 +148,18 @@ int main(int argc, char* argv[]){
     perror("Bind failed");
     abort();
   }
+
   FD_ZERO(&readfds);
   FD_SET(listener,&readfds);
   fdmax = listener;
-  
-  int size = sizeof(clientaddr);
 
   while(1){ // main accept() lo
-    int client_sin_len;
     int selVal = (select(fdmax+1,&readfds,NULL,NULL,NULL));
-    printf("selval:%d",selVal);
     int i;
     for(i=0; i<= fdmax; i++){
       if (FD_ISSET(i,&readfds)){
 	if (i!=listener){ // NEW CONNECTION COMING IN
 	} else { // If someone has data
-	  printf("We got a connection\n");
 	  unsigned char read_buffer[4096];
 	  int read_bytes = recvfrom(i,
 				    read_buffer,
@@ -170,18 +173,16 @@ int main(int argc, char* argv[]){
 	    close(i); // bye!
 	  } else {
 	    // Recording the message for duplicate checking
-	    fprintf(stdout,"RECEIVED: ");
-	    printMessage(read_buffer,read_bytes);
-	    
+	    fprintf(stdout,"RECEIVED from %s\n", inet_ntoa(clientaddr.sin_addr));
+	    printMessage(read_buffer,read_bytes);	    
 	    printMessageRecord(mr_array);
+
 	    char msgtype = read_buffer[0];
 	    unsigned int ip = clientaddr.sin_addr.s_addr;
 
-	    // Handling duplicates
 	    int id = (read_buffer[1]<<24)+(read_buffer[2]<<16)+(read_buffer[3]<<8)+read_buffer[4];
 	    int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
-	    if(dup>=0){ // Found a duplicate
-	      // Print out the duplicate message
+	    if(dup>=0){
 	      on_udp_duplicate(htonl(ip));
 
 	      // Resend the message based on the type
@@ -197,7 +198,9 @@ int main(int argc, char* argv[]){
 		       0,
 		       (struct sockaddr*)&clientaddr,
 		       sizeof(clientaddr));
+
 	    } else if(msgtype==STORAGE_LOCATION_REQUEST){
+	      printf("ip:%x\n", ntohl(ip));
 	      struct storage_location_request * slr = (struct storage_location_request*) read_buffer;
 
 	      // TODO: Check the ID
@@ -212,7 +215,6 @@ int main(int argc, char* argv[]){
 	      createslrespond(sr,ntohl(slr->id),slrespond);
 
 	      // Add this message to the message record array
-	      printf("RECORDING THE STORAGE LOCATION REQUEST MESSAGE");
 	      message_record * new_mr = (message_record*) malloc(sizeof(message_record));
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
 	      new_mr->id = slr->id;
