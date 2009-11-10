@@ -161,6 +161,7 @@ int process_invalid_state(char payload_c[]){
 
 // Processing PLAYER_STATE_REQUEST
 int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id){
+  printf("Processing PLAYER_STATE_REQUEST\n");
   FILE * file = fopen(name,"r"); // open the file
   int hp;
   int exp;
@@ -200,12 +201,14 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id){
 
 // process_ssr : process save state request
 int process_ss_request(char* name,int hp, int exp, char x, char y, int udpsock, struct sockaddr_in targetsin, int id){
+    printf("Processing SAVE_STATE_REQUEST\n");
     FILE * file = fopen(name,"w+");
 
-    char success = '0';
+    char success = 0;
 
     // Save the file
-    if(file == NULL) success = '1';
+    if(file == NULL) success = 1;
+    printf("Writing player %s with hp %d exp %d x %d y %d\n",name,hp,exp,x,y);
     fprintf(file,"%d %d %d %d",hp,exp,x,y);
     fclose(file);
 
@@ -222,6 +225,7 @@ int updateHP(LinkedList * mylist){
     }
     Node * i;
     for(i=mylist->head; i!=NULL;i=i->next){
+	printf("updating hp of player %s\n",i->datum->name);
         i->datum->hp = i->datum->hp + 1;
         return 1;
     }
