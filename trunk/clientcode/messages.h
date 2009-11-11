@@ -13,8 +13,9 @@
 
 #include "constants.h"
 
+
 /**************************************************************************
-  * Message functions for the client
+  * Message functions
   ************************************************************************/
 static inline void show_prompt()
 {
@@ -22,7 +23,73 @@ static inline void show_prompt()
   fflush(stdout);
 }
 
-/* Error messages for the client. */
+static inline void on_invalid_udp_source() {
+  fprintf(stdout, "**Received UDP packet from unexpected source.\n");
+  fflush(stdout);
+}
+
+static inline void on_malformed_udp() {
+  fprintf(stdout, "**Received malformed UDP packet.\n");
+  fflush(stdout);
+}
+
+static inline void on_udp_duplicate(unsigned int ipaddr) {
+  fprintf(stdout,"**Received duplicate packet from %x.\n",ipaddr);
+  fflush(stdout);
+}
+
+static inline void on_udp_attempt(int attempt) {
+  fprintf(stdout, "**UDP transmission attempt:%d.\n",attempt);
+  fflush(stdout);
+}
+
+static inline void on_loc_resp(unsigned char type,unsigned int ipaddr, unsigned short udpport) {
+  fprintf(stdout, "**LOC Resp - TYPE: %d IPADDR: %x UDPPORT: %x.\n", type, ipaddr, udpport);
+  fflush(stdout);
+}
+
+static inline void on_state_resp(unsigned char type, char* name, int hp, int exp, unsigned char x, unsigned char y) {
+  fprintf(stdout, "**State Resp - TYPE: %d NAME: %s HP: %d EXP: %d XLOC: %d YLOC: %d.\n", type, name, hp, exp, x, y);
+  fflush(stdout);
+}
+
+static inline void on_area_resp (unsigned char type, unsigned int ipaddr, unsigned short port, unsigned char minx, unsigned char maxx, unsigned char miny, unsigned char maxy) {
+  fprintf(stdout, "**Area Resp - TYPE: %d IPADDR: %x PORT: %x MINX: %d MAXX: %d MINY: %d MAXY: %d\n",type, ipaddr, port, minx, maxx, miny, maxy);
+  fflush(stdout);
+}
+
+static inline void on_save_resp (unsigned char type, unsigned char ecode) {
+  if(ecode == 0) {
+    printf("**Save Resp - TYPE: %d RESULT: Success.\n", type);
+  }
+  else if (ecode == 1) {
+    printf("**Save Resp - TYPE: %d RESULT: FAILURE.\n", type);
+
+  }
+  else {
+    assert(0);
+  }
+  fflush(stdout);
+}
+
+
+static inline void on_before_login() {
+  fprintf(stdout, "Must login before using this command.\n");
+}
+
+static inline void on_close_to_boundary(char type, int bound_loc) {
+  if(type == 1) {
+    fprintf(stdout, "Cannot see past x-boundary at: %d.\n",bound_loc);
+  }
+  else if (type == 2) {
+    fprintf(stdout, "Cannot see past y-boundary at: %d.\n",bound_loc);
+  }
+  else {
+    assert(0);
+  }
+  show_prompt();
+}
+
 static inline void on_client_connect_failure()
 {
   fprintf(stdout,
@@ -44,7 +111,7 @@ static inline void on_disconnection_from_server()
 static inline void on_not_visible()
 {
   fprintf(stdout, "The target is not visible.\n");
-  show_prompt();
+  //show_prompt();
 }
 
 static inline void on_login_reply(const int error_code)
@@ -115,11 +182,6 @@ static inline void on_invalid_state(const int error_code)
   show_prompt();
 }
 
-static inline void on_receive_server_area_response(int min_x, int max_x, int min_y, int max_y)
-{
-  fprintf(stdout,"Playable Area: MINX:%d, MAXX:%d, MINY:%d, MAXY:%d\n",min_x,max_x,min_y,max_y);
-  show_prompt();
-}
 
 /**************************************************************************
   * Message functions for the server
@@ -163,48 +225,6 @@ static inline int check_player_message(const char *message)
     if (!isprint(message[i])) return 0;
   }
   /* Must be null terminated. */
-  return 0;
-}
-
-static inline int check_malformed_header(int version, int len, int msgtype){
-  if(version != 4) on_malformed_message_from_server();
-  if(len%4 != 0) on_malformed_message_from_server();
-  if(msgtype<0 || msgtype>0xb) on_malformed_message_from_server();
-}
-
-static inline int check_malformed_stats(int x, int y, int hp, int exp){
-  if(x < 0 || x > 99){ on_malformed_message_from_server(); }
-  if(y < 0 || y > 99){ on_malformed_message_from_server();}
-  if(hp < 1){on_malformed_message_from_server();}
-  if(exp < 0){on_malformed_message_from_server();}
-  return 0;
-}
-
-static inline int check_malformed_move(char*name,int x, int y, int hp, int exp){
-  if (!check_player_name(name)) on_malformed_message_from_server();
-  if(x < 0 || x > 99){ on_malformed_message_from_server(); }
-  if(y < 0 || y > 99){ on_malformed_message_from_server();}
-  if(hp < 1){on_malformed_message_from_server();}
-  if(exp < 0){on_malformed_message_from_server();}
-  return 0;
-}
-
-static inline int check_malformed_attack(char*name1,char*name2,char damage, int updatedhp){ 
-  if (!check_player_name(name1)) on_malformed_message_from_server();
-  if (!check_player_name(name2)) on_malformed_message_from_server();
-  if (damage < 10 || damage > 20) on_malformed_message_from_server();
-  if (updatedhp < 0){ on_malformed_message_from_server(); }
-  return 0;
-}
-
-static inline int check_malformed_speak(char*name,char*msg){
-  if (!check_player_name(name)) on_malformed_message_from_server();
-  if (!check_player_message(msg)) on_malformed_message_from_server();
-  return 0;
-}
-
-static inline int check_malformed_logout(char*name){
-  if (!check_player_name(name)) on_malformed_message_from_server();
   return 0;
 }
 

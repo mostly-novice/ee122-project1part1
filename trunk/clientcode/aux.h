@@ -1,8 +1,3 @@
-typedef struct M{
-  unsigned int ip;
-  unsigned int id;
-} message_record;
-
 int isVisible(int x1, int y1, int x2, int y2){
   return (abs(x1 - x2)<=5 && abs(y1 - y2)<=5);
 }
@@ -28,4 +23,22 @@ int readstdin(char * command, char * arg){
 
   strcpy(arg, pch);
   return 1;
+}
+
+typedef struct M{
+  unsigned int ip;
+  unsigned int id;
+} message_record;
+
+int findDup(message_record ** mr_array,int id, int ip){
+  int i;
+  for(i = 0; i <MAX_MESSAGE_RECORD;i++){
+    message_record * mr = mr_array[i];
+    if(mr){
+      if(mr->ip == ip && mr->id == id){
+	return i;
+      }
+    }
+  }
+  return -1;
 }
