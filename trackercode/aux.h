@@ -55,3 +55,16 @@ void printMessageRecord(message_record ** mr_array){
     }
   }
 }
+
+int findDup(message_record ** mr_array,int id, int ip){
+  int i;
+  for(i = 0; i <MAX_MESSAGE_RECORD;i++){
+    message_record * mr = mr_array[i];
+    if(mr){
+      if(mr->ip == ip && mr->id == id){
+	return i;
+      }
+    }
+  }
+  return -1;
+}

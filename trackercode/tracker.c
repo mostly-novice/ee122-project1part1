@@ -55,22 +55,8 @@ unsigned int hash(char*s){
 int findServer(char x, int server_count, server_record ** sr_array){
   int i;
   for(i=0;i<server_count;i++){
-    if (sr_array[i]->max_x >= x && sr_array[i]->min_x <= x){
+    if (sr_array[i]->max_x >= x && sr_array[i]->min_x <= x)
       return i;
-    }
-  }
-  return -1;
-}
-
-int findDup(message_record ** mr_array,int id, int ip){
-  int i;
-  for(i = 0; i <MAX_MESSAGE_RECORD;i++){
-    message_record * mr = mr_array[i];
-    if(mr){
-      if(mr->ip == ip && mr->id == id){
-	return i;
-      }
-    }
   }
   return -1;
 }
