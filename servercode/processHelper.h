@@ -197,6 +197,20 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,char*
   printf("ID:%d\n", ntohs(id));
   createpsr(name,hp,exp,x,y,id,buffer);
   udpunicast(udpsock,targetsin,buffer,PLAYER_STATE_RESPONSE_SIZE);
+
+  // Set the last message sent for Dup checking.
+  message_record * new_mr = (message_record*) malloc(sizeof(message_record));
+  new_mr->ip = targetsin.sin_addr.s_addr;
+  new_mr->id = id;
+  new_mr->message = (unsigned char*) malloc (sizeof(char)*PLAYER_STATE_RESPONSE_SIZE);
+  memcpy(new_mr->message,(char*)buffer,PLAYER_STATE_RESPONSE_SIZE);
+
+  if (mr_array[oldest]){
+	  free(mr_array[oldest]->message);
+	  free(mr_array[oldest]);
+  }
+
+  mr_array[oldest] = new_mr;
 }
 
 // process_ssr : process save state request
@@ -216,6 +230,21 @@ int process_ss_request(char* name,int hp, int exp, char x, char y, int udpsock, 
     char buffer[SAVE_STATE_RESPONSE_SIZE];
     create_ss_response(id,success,buffer);
     udpunicast(udpsock,targetsin,buffer,SAVE_STATE_RESPONSE_SIZE);
+    
+    // Set the last message sent for Dup checking.
+    message_record * new_mr = (message_record*) malloc(sizeof(message_record));
+    new_mr->ip = targetsin.sin_addr.s_addr;
+    new_mr->id = id;
+    new_mr->message = (unsigned char*) malloc (sizeof(char)*SAVE_STATE_RESPONSE_SIZE);
+    memcpy(new_mr->message,(char*)buffer,SAVE_STATE_RESPONSE_SIZE);
+
+    if (mr_array[oldest]){
+	    free(mr_array[oldest]->message);
+	    free(mr_array[oldest]);
+    }
+
+    mr_array[oldest] = new_mr;
+
 
 }
 
