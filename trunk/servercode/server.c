@@ -11,6 +11,7 @@
 
 #include "header.h"
 #include "messages.h"
+#include "server_output.h"
 
 #define STDIN 0
 #define HEADER_LENGTH 4
@@ -288,16 +289,23 @@ int main(int argc, char* argv[]){
                                 struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
                                 process_psr(psr->name,udplistener,udpsin,psr->id,mr_array);
 
+				// Check to see whether this is malformed
+
 
                             } else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){
                                 struct save_state_request * ssr = (struct save_state_request *) udp_read_buffer;
 
-                                // Check to see whether this is malformed
+				// Check to see whether this is malformed
 
-                                process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,mr_array);
-                            }
-                        }
-                    }
+				process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,mr_array);
+			    }
+
+			    //	Update Duplicate message check
+			    oldest = (oldest + 1)%MAX_MESSAGE_RECORD;
+
+
+			}
+		    }
 
                     /*
                      *	Handling Data from TCP PORT
@@ -735,5 +743,6 @@ int main(int argc, char* argv[]){
             updateHP(mylist);
             lasttime = currenttime;
         }
-    }
+    } // end main while(1) loop
 
+}
