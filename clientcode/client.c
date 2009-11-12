@@ -202,25 +202,14 @@ int main(int argc, char* argv[]){
   int max_x;
   int min_y;
   int max_y;
+
   // Select
   fd_set readfds;
   fd_set writefds;
 
-  struct sockaddr_in trackersin;
-  int tracker_sin_len;
-  memset(&trackersin, 0, sizeof(trackersin));
+  struct sockaddr_in trackersin,serversin,dbserversin,sendersin;
 
-  struct sockaddr_in serversin;
-  int server_sin_len;
-  memset(&serversin, 0, sizeof(serversin));
-
-  struct sockaddr_in dbserversin;
-  int dbserver_sin_len;
-  memset(&dbserversin, 0, sizeof(dbserversin));
-
-  struct sockaddr_in sendersin;
-  int sender_sin_len;
-  memset(&sendersin, 0, sizeof(sendersin));
+  sendersin.sin_family = AF_INET;
 
   message_record ** message_list = malloc(sizeof(*message_list)*50);
 
@@ -272,14 +261,14 @@ int main(int argc, char* argv[]){
   struct header * hdr;
 
   tv = NULL;
-  FD_ZERO(&readfds);
-  FD_SET(STDIN, &readfds);
-  FD_SET(udpsock, &readfds);
-  FD_SET(tcpsock, &readfds);
-  if(udpsock>fdmax) fdmax = udpsock;
-  if(tcpsock>fdmax) fdmax = tcpsock;
 
-  while(1){      
+  while(1){
+    FD_ZERO(&readfds);
+    FD_SET(STDIN, &readfds);
+    FD_SET(udpsock, &readfds);
+    FD_SET(tcpsock, &readfds);
+    if(udpsock>fdmax) fdmax = udpsock;
+    if(tcpsock>fdmax) fdmax = tcpsock;
     if (select(fdmax+1,&readfds,NULL,NULL,tv) == -1){
       perror("select");
       return 0;
@@ -310,8 +299,9 @@ int main(int argc, char* argv[]){
 	  sendslrequest(self->name,udpsock,&trackersin,currentID,tobeack);
 	  currentID++;
 
-	  // Set time out for this attempt
+	  // Set time out fo this attempt
 	  tv = (struct timeval*) malloc(sizeof(struct timeval));
+	  tv->tv_sec = 0;
 	  tv->tv_usec = pow(2,attempt-1)*100000;
 
 	} else { // If no longer need UDP
@@ -352,7 +342,6 @@ int main(int argc, char* argv[]){
 	  currentID++;
 
 	  // Set the timeout
-	  tv = (struct timeval*) malloc(sizeof(struct timeval));
 	  tv->tv_usec = pow(2,attempt-1)*100000;
 
 	  close(tcpsock);
@@ -406,7 +395,6 @@ int main(int argc, char* argv[]){
 	currentID++;
 
 	// Reset time out
-	tv = (struct timeval*) malloc(sizeof(struct timeval));
 	tv->tv_usec = pow(2,attempt-1)*100000;
 
 	// Stop listening from the user
@@ -427,7 +415,6 @@ int main(int argc, char* argv[]){
       } else {
 	printf("Available command: login, move, attack, speak, logout.\n");
       }
-      show_prompt();
 
 
 
@@ -439,14 +426,15 @@ int main(int argc, char* argv[]){
 
     } else if (FD_ISSET(udpsock, &readfds)){
       unsigned char read_buffer[4096];
-      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,(struct sockaddr *) &sendersin,&sender_sin_len);
+      socklen_t addrLen = sizeof(sendersin);
+      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,(struct sockaddr *) &sendersin,&addrLen);
       if (read_bytes < 0){
 	perror("Handling data from UDP sock: read_bytes == -1");
       }
 
       int ip = sendersin.sin_addr.s_addr;
       char msgtype = read_buffer[0];
-      if(tobeack->ip!=ip || tobeack->id!=currentID){
+      if(tobeack->ip!=ip || tobeack->id!=currentID-1){
 	printf("This is not good.\n");
 	//on_udp_malformed();
       } else {
@@ -473,7 +461,6 @@ int main(int argc, char* argv[]){
 	  sendpsrequest(self->name,udpsock,&dbserversin,currentID,tobeack);
 	  currentID++;
 
-	  tv = (struct timeval*) malloc(sizeof(struct timeval));
 	  tv->tv_usec = pow(2,attempt-1)*100000;
 
 	} else if (msgtype == PLAYER_STATE_RESPONSE){
@@ -487,7 +474,6 @@ int main(int argc, char* argv[]){
 	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID,tobeack);
 	  currentID++;
 
-	  tv = (struct timeval*) malloc(sizeof(struct timeval));
 	  tv->tv_usec = pow(2,attempt-1)*100000;
 	  
 	} else if (msgtype == SERVER_AREA_RESPONSE){
@@ -526,6 +512,7 @@ int main(int argc, char* argv[]){
 	  break;
 	} else {
 	  //on_udp_malformed();
+	  printf("UDP MALFORMED\n");
 	}
       }
 
@@ -611,39 +598,40 @@ int main(int argc, char* argv[]){
 	  } // end of handling payload
 	} // End of while
       }
-    }
-
-    // Handling timeout event
-    if (attempt == 4){
-      // clean up and exit
-      // Print out on_udp_fail
-
-      printf("UDP FAILED. IF A NEW VERSION COMES OUT, REMEMBER TO FIX THIS!\n");
-      exit(0);
     } else {
-      on_udp_attempt(attempt); // print out UDP attempt
 
-      // Resend the attempt
-      char * tosent = tobeack->message;
-      if(tosent[0] == STORAGE_LOCATION_REQUEST){
-	sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
+      // Handling timeout event
+      if (attempt == 4){
+	// clean up and exit
+	// Print out on_udp_fail
 	
-      } else if(tosent[0] == PLAYER_STATE_REQUEST){
-	sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
-	
-      } else if(tosent[0] == SERVER_AREA_REQUEST){
-	sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,(struct sockaddr*)&serversin,sizeof(serversin));
-	
-      } else if(tosent[0] == SAVE_STATE_REQUEST){
-	sendto(udpsock,tosent,SAVE_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
-
+	printf("UDP FAILED. IF A NEW VERSION COMES OUT, REMEMBER TO FIX THIS!\n");
+	exit(0);
       } else {
-	fprintf(stderr,"THIS SHOULD NEVER HAPPEN.\n");
-      }
+	attempt++;
+	on_udp_attempt(attempt); // print out UDP attempt
+	
+	// Resend the attempt
+	char * tosent = tobeack->message;
+	if(tosent[0] == STORAGE_LOCATION_REQUEST){
+	  sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
+	  
+	} else if(tosent[0] == PLAYER_STATE_REQUEST){
+	  sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
+	  
+	} else if(tosent[0] == SERVER_AREA_REQUEST){
+	  sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,(struct sockaddr*)&serversin,sizeof(serversin));
+	  
+	} else if(tosent[0] == SAVE_STATE_REQUEST){
+	  sendto(udpsock,tosent,SAVE_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
+	  
+	} else {
+	  fprintf(stderr,"THIS SHOULD NEVER HAPPEN.\n");
+	}
 
-      // Set the timeout
-      attempt++;
-      tv->tv_usec = pow(2,attempt-1)*100000; // 100ms = 100,000usec
+	// Set the timeout
+	tv->tv_usec = pow(2,attempt-1)*100000; // 100ms = 100,000usec
+      }
     }
   } // End of while(1)
 }

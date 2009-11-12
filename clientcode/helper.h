@@ -197,6 +197,7 @@ int sendslrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
   strcpy(slr->name,name);
 
   char * tosent = (char*) slr;
+  tobeack->message = tosent;
   int sent_bytes = sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)sin,sizeof(*sin));
   if(sent_bytes < 0) {
     perror("sendslrequest: sendto failed.");
