@@ -28,6 +28,7 @@ int readstdin(char * command, char * arg){
 typedef struct M{
   unsigned int ip;
   unsigned int id;
+  unsigned char * message;
 } message_record;
 
 int findDup(message_record ** mr_array,int id, int ip){
