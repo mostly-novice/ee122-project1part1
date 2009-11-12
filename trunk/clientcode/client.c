@@ -11,7 +11,6 @@
 
 #include "header.h"
 #include "messages.h"
-#include "aux.h"
 
 #define MAX_MESSAGE_RECORD 50
 
@@ -156,6 +155,7 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   object->y = y;
 }
 
+#include "aux.h"
 #include "helper.h"
 #include "payloadHelper.h"
 
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]){
   LinkedList * mylist = (LinkedList *) malloc (sizeof(LinkedList));
   message_record ** mr_array = malloc(sizeof(*mr_array)*MAX_MESSAGE_RECORD);
 
-  message_record * tobeack;
+  message_record * tobeack = (message_record *) malloc(sizeof(message_record));
 
   mylist->head = NULL;
   mylist->tail = NULL;
@@ -219,7 +219,7 @@ int main(int argc, char* argv[]){
   memset(&dbserversin, 0, sizeof(dbserversin));
 
   struct sockaddr_in sendersin;
-  int dbserver_sin_len;
+  int sender_sin_len;
   memset(&sendersin, 0, sizeof(sendersin));
 
   message_record ** message_list = malloc(sizeof(*message_list)*50);
@@ -272,16 +272,14 @@ int main(int argc, char* argv[]){
   struct header * hdr;
 
   tv = NULL;
-  while(1){
-    // Clear the set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(STDIN, &readfds);
-    FD_SET(udpsock, &readfds);
-    FD_SET(tcpsock, &readfds);
+  FD_ZERO(&readfds);
+  FD_SET(STDIN, &readfds);
+  FD_SET(udpsock, &readfds);
+  FD_SET(tcpsock, &readfds);
+  if(udpsock>fdmax) fdmax = udpsock;
+  if(tcpsock>fdmax) fdmax = tcpsock;
 
-    if(udpsock>fdmax) fdmax = udpsock;
-    if(tcpsock>fdmax) fdmax = tcpsock;
-      
+  while(1){      
     if (select(fdmax+1,&readfds,NULL,NULL,tv) == -1){
       perror("select");
       return 0;
@@ -301,16 +299,22 @@ int main(int argc, char* argv[]){
 	
 	strcpy(self->name,arg);
 	if(!udpdone){ // If we don't have a connection yet
+	  tobeack->id = currentID;
+	  tobeack->ip = trackersin.sin_addr.s_addr;
+
 	  // Send a storage_location_request
 	  attempt = 1;
 	  on_udp_attempt(attempt);
+
 	  // send_to
-	  sendslrequest(self->name,udpsock,&trackersin,currentID);
+	  sendslrequest(self->name,udpsock,&trackersin,currentID,tobeack);
 	  currentID++;
+
 	  // Set time out for this attempt
 	  tv = (struct timeval*) malloc(sizeof(struct timeval));
-	  tv->usec = pow(2,attempt-1)*100000;
-	} else {
+	  tv->tv_usec = pow(2,attempt-1)*100000;
+
+	} else { // If no longer need UDP
 	  int status = handlelogin(name,udpsock);
 	}
 
@@ -332,7 +336,6 @@ int main(int argc, char* argv[]){
 	  continue;
 	}
 
-	fprintf(stdout,"Playable Area: MINX:%d, MAXX:%d, MINY:%d, MAXY:%d\n",min_x,max_x,min_y,max_y);
 	if(self->x > max_x || self->x < min_x || self->y > max_y || self->y < min_y){
 	  if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
 	  freePlayers(mylist); // Free every player in the list
@@ -345,12 +348,12 @@ int main(int argc, char* argv[]){
 	  attempt = 1;
 	  on_udp_attempt(attempt);
 
-	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
+	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID,tobeack);
 	  currentID++;
 
 	  // Set the timeout
 	  tv = (struct timeval*) malloc(sizeof(struct timeval));
-	  tv->usec = pow(2,attempt-1)*100000;
+	  tv->tv_usec = pow(2,attempt-1)*100000;
 
 	  close(tcpsock);
 	  isLogin = 0; // FALSE
@@ -394,23 +397,27 @@ int main(int argc, char* argv[]){
 	  show_prompt();
 	  continue;
 	}
-	if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
+
+	// Sending the UDP Save State Request
 	attempt = 1;
 	on_udp_attempt(attempt);
 
-	sendssrequest(self,udpsock,&dbserversin,currentID);
+	sendssrequest(self,udpsock,&dbserversin,currentID,tobeack);
 	currentID++;
 
+	// Reset time out
 	tv = (struct timeval*) malloc(sizeof(struct timeval));
-	tv->usec = pow(2,attempt-1)*100000;
+	tv->tv_usec = pow(2,attempt-1)*100000;
 
+	// Stop listening from the user
+	FD_CLR(STDIN,&readfds);
+
+	// Free the data
 	free(buffer);
 	free(self);
 	freePlayers(mylist); // Free every player in the list
 	free(mylist); // Free the list
-	show_prompt();
-	on_disconnection_from_server();	
-	break;
+
       } else if(strcmp(command,"whois") == 0){
 	printPlayers(mylist);
       } else if(strcmp(command,"whoami")==0){
@@ -424,7 +431,6 @@ int main(int argc, char* argv[]){
 
 
 
-
       /*
        * Handling data from UDP sock
        *
@@ -433,79 +439,94 @@ int main(int argc, char* argv[]){
 
     } else if (FD_ISSET(udpsock, &readfds)){
       unsigned char read_buffer[4096];
-      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,(struct sockaddr *) &serversin,&server_sin_len);
+      int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,(struct sockaddr *) &sendersin,&sender_sin_len);
       if (read_bytes < 0){
 	perror("Handling data from UDP sock: read_bytes == -1");
       }
 
+      int ip = sendersin.sin_addr.s_addr;
       char msgtype = read_buffer[0];
-      if(!equal(id,ip,tobeack)){
+      if(tobeack->ip!=ip || tobeack->id!=currentID){
 	on_udp_malformed();
-      } else if (msgtype == STORAGE_LOCATION_RESPONSE){
-	struct storage_location_response * slr = (struct storage_location_response*) read_buffer;
-	on_loc_resp(msgtype,slr->server_ip,slr->udpport);
-
-	// TODO: Check to see if the source address is correct
-	if(NULL) on_invalid_udp_source();
-
-	// Need to send the server the player_state_request
-	dbserversin.sin_family = AF_INET;
-	dbserversin.sin_addr.s_addr = slr->server_ip;
-	dbserversin.sin_port = slr->udpport;
-
-	attempt = 1;
-	on_udp_attempt(attempt);
-	sendpsrequest(self->name,udpsock,&dbserversin,currentID);
-	currentID++;
-	tv = (struct timeval*) malloc(sizeof(struct timeval));
-	tv->usec = pow(2,attempt-1)*100000;
-
-      } else if (msgtype == PLAYER_STATE_RESPONSE){
-	struct player_state_response * psr = (struct player_state_response *) read_buffer;
-	initialize(self,psr->name,ntohl(psr->hp),ntohl(psr->exp),psr->x,psr->y);
-	attempt = 1;
-	on_udp_attempt(attempt);
-	sendsarequest(self->x,self->y,udpsock,&trackersin,currentID);
-	currentID++;
-	tv = (struct timeval*) malloc(sizeof(struct timeval));
-	tv->usec = pow(2,attempt-1)*100000;
-	currentID++;
-
-      } else if (msgtype == SERVER_AREA_RESPONSE){
-	struct server_area_response * sares = (struct server_area_response *) read_buffer;
-	
-	// Check if the data is malformed
-	min_x = sares->min_x; max_x = sares->max_x; min_y = sares->min_y; max_y = sares->max_y;
-
-	on_receive_server_area_response(min_x,max_x,min_y,max_y);
-
-	struct sockaddr_in tcpsin;
-	tcpsin.sin_family = AF_INET;
-	tcpsin.sin_addr.s_addr = sares->server_ip;
-	tcpsin.sin_port = sares->tcpport;
-
-	// Establish connection
-	if(connect(tcpsock,(struct sockaddr *) &tcpsin, sizeof(tcpsin)) < 0){
-	  perror("client - connect returns -1");
-	  freePlayers(mylist);
-	  free(self);
-	  free(mylist);
-	}
-	udpdone = 1;
-	int status = handlelogin(self->name,tcpsock);
-	
-      } else if (msgtype == SAVE_STATE_RESPONSE){
-
-	// Clean up
-	free(self);
-
-	// TODO: clean up the message history
-	// Clean up the player list
-	break;
       } else {
-	on_udp_malformed();
-      }
+	// Free the last tobeack
+	if(tobeack->message) free(tobeack->message);
+	tobeack->id = currentID;
+	tobeack->ip = sendersin.sin_addr.s_addr;
 
+	if (msgtype == STORAGE_LOCATION_RESPONSE){
+	  struct storage_location_response * slr = (struct storage_location_response*) read_buffer;
+	  on_loc_resp(msgtype,slr->server_ip,slr->udpport);
+
+	  // TODO: Check to see if the source address is correct
+	  if(NULL) on_invalid_udp_source();
+
+	  // Need to send the server the player_state_request
+	  dbserversin.sin_family = AF_INET;
+	  dbserversin.sin_addr.s_addr = slr->server_ip;
+	  dbserversin.sin_port = slr->udpport;
+
+	  attempt = 1; // Reset the attempt
+	  on_udp_attempt(attempt);
+	  
+	  sendpsrequest(self->name,udpsock,&dbserversin,currentID,tobeack);
+	  currentID++;
+
+	  tv = (struct timeval*) malloc(sizeof(struct timeval));
+	  tv->tv_usec = pow(2,attempt-1)*100000;
+
+	} else if (msgtype == PLAYER_STATE_RESPONSE){
+	  struct player_state_response * psr = (struct player_state_response *) read_buffer;
+	  initialize(self,psr->name,ntohl(psr->hp),ntohl(psr->exp),psr->x,psr->y);
+	  
+	  // Reset the attempt
+	  attempt = 1;
+	  on_udp_attempt(attempt);
+
+	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID,tobeack);
+	  currentID++;
+
+	  tv = (struct timeval*) malloc(sizeof(struct timeval));
+	  tv->tv_usec = pow(2,attempt-1)*100000;
+	  
+	} else if (msgtype == SERVER_AREA_RESPONSE){
+	  struct server_area_response * sares = (struct server_area_response *) read_buffer;
+
+	  // Set tv to be null so that we don't have to wait anymore
+	  tv = NULL;
+	  
+	  // Check if the data is malformed
+	  min_x = sares->min_x; max_x = sares->max_x; min_y = sares->min_y; max_y = sares->max_y;
+	  
+	  on_receive_server_area_response(min_x,max_x,min_y,max_y);
+	  
+	  struct sockaddr_in tcpsin;
+	  tcpsin.sin_family = AF_INET;
+	  tcpsin.sin_addr.s_addr = sares->server_ip;
+	  tcpsin.sin_port = sares->tcpport;
+
+	  // Establish connection
+	  if(connect(tcpsock,(struct sockaddr *) &tcpsin, sizeof(tcpsin)) < 0){
+	    perror("client - connect returns -1");
+	    freePlayers(mylist);
+	    free(self);
+	    free(mylist);
+	  }
+	  udpdone = 1;
+	  int status = handlelogin(self->name,tcpsock);
+	  
+	} else if (msgtype == SAVE_STATE_RESPONSE){
+	  // TODO: clean up the message history
+	  // TODO: Clean up the player list
+
+	  // Now official logging out
+	  if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
+	  
+	  break;
+	} else {
+	  on_udp_malformed();
+	}
+      }
 
 
       /*
@@ -602,10 +623,26 @@ int main(int argc, char* argv[]){
       on_udp_attempt(attempt); // print out UDP attempt
 
       // Resend the attempt
+      char * tosent = tobeack->message;
+      if(tosent[0] == STORAGE_LOCATION_REQUEST){
+	sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
+	
+      } else if(tosent[0] == PLAYER_STATE_REQUEST){
+	sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
+	
+      } else if(tosent[0] == SERVER_AREA_REQUEST){
+	sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,(struct sockaddr*)&serversin,sizeof(serversin));
+	
+      } else if(tosent[0] == SAVE_STATE_REQUEST){
+	sendto(udpsock,tosent,SAVE_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
+
+      } else {
+	fprintf(stderr,"THIS SHOULD NEVER HAPPEN.\n");
+      }
 
       // Set the timeout
-      tv.usec = pow(2,attempt-1)*100000; // 100ms = 100,000usec
       attempt++;
+      tv->tv_usec = pow(2,attempt-1)*100000; // 100ms = 100,000usec
     }
   } // End of while(1)
 }
