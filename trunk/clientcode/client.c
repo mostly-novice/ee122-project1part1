@@ -447,7 +447,8 @@ int main(int argc, char* argv[]){
       int ip = sendersin.sin_addr.s_addr;
       char msgtype = read_buffer[0];
       if(tobeack->ip!=ip || tobeack->id!=currentID){
-	on_udp_malformed();
+	printf("This is not good.\n");
+	//on_udp_malformed();
       } else {
 	// Free the last tobeack
 	if(tobeack->message) free(tobeack->message);
@@ -498,7 +499,7 @@ int main(int argc, char* argv[]){
 	  // Check if the data is malformed
 	  min_x = sares->min_x; max_x = sares->max_x; min_y = sares->min_y; max_y = sares->max_y;
 	  
-	  on_receive_server_area_response(min_x,max_x,min_y,max_y);
+	  //on_receive_server_area_response(min_x,max_x,min_y,max_y);
 	  
 	  struct sockaddr_in tcpsin;
 	  tcpsin.sin_family = AF_INET;
@@ -524,7 +525,7 @@ int main(int argc, char* argv[]){
 	  
 	  break;
 	} else {
-	  on_udp_malformed();
+	  //on_udp_malformed();
 	}
       }
 
@@ -564,7 +565,7 @@ int main(int argc, char* argv[]){
 	    for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(buffer+j);}
 
 	    hdr = (struct header *) header_c;
-	    check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
+	    //check_malformed_header(hdr->version,hdr->len,hdr->msgtype);
 
 	    // Move the pointers
 	    char * temp = (char*) malloc(sizeof(char)*(buffer_size-HEADER_LENGTH));

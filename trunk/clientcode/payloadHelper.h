@@ -52,7 +52,7 @@ int process_move_notify(char payload_c[], Player * self, LinkedList * mylist){
 
 int process_attack_notify(char payload_c[], Player * self, LinkedList * mylist){
   struct attack_notify * an = (struct attack_notify *)payload_c;
-  check_malformed_attack(an->attacker_name,an->victim_name,an->damage,ntohl(an->hp));
+  //check_malformed_attack(an->attacker_name,an->victim_name,an->damage,ntohl(an->hp));
   Player * att;
   Player * vic;
 
@@ -85,7 +85,7 @@ int process_speak_notify(char payload_c[]){
   unsigned char * broadcaster = sreply->broadcaster;
 
   char * start = ((char*)payload_c)+10;
-  check_malformed_speak(broadcaster,start);
+  //check_malformed_speak(broadcaster,start);
 
   // null terminated & no longer than 255
   if(!check_player_message(start)){ printf("! Invalid format\n"); return 0;}		
@@ -96,7 +96,7 @@ int process_speak_notify(char payload_c[]){
 
 int process_logout_notify(char payload_c[], LinkedList * mylist){
   struct logout_reply * loreply = (struct logout_reply *) payload_c;
-  check_malformed_logout(loreply->name);
+  //check_malformed_logout(loreply->name);
   removePlayer(loreply->name, mylist);
   
   printf("Player %s has left the tiny world of warcraft.\n",loreply->name);
