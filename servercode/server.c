@@ -100,6 +100,7 @@ int main(int argc, char* argv[]){
     char command[80];
     char arg[4000];
     struct timeval tv;
+    int oldest = 0;
 
     // Connection variables
     // Keep track of the list of sockets
@@ -287,7 +288,7 @@ int main(int argc, char* argv[]){
 
                             if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
                                 struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
-                                process_psr(psr->name,udplistener,udpsin,psr->id,mr_array);
+                                process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array);
 
 				// Check to see whether this is malformed
 
@@ -297,7 +298,7 @@ int main(int argc, char* argv[]){
 
 				// Check to see whether this is malformed
 
-				process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,mr_array);
+				process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,oldest,mr_array);
 			    }
 
 			    //	Update Duplicate message check
