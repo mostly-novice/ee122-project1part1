@@ -43,3 +43,18 @@ int findDup(message_record ** mr_array,int id, int ip){
   }
   return -1;
 }
+
+void freeMessageRecords(message_record ** mr_array){
+  int i;
+  for(i = 0; i <MAX_MESSAGE_RECORD;i++){
+    message_record * mr = mr_array[i];
+    if(mr){
+      if(mr->message) free(mr->message); // free the message first
+      free(mr);
+    }
+  }
+  fprintf(stdout,"Freed all message records\n");
+
+  free(mr_array);
+  fprintf(stdout,"Free mr_array.\n");
+}
