@@ -164,13 +164,8 @@ int main(int argc, char* argv[]){
                 return 0;
         }
     }
-
-    mkdir(DIR);
-    chdir(DIR);
-
     myport = atoi(tvalue);
     myudpport = atoi(uvalue);
-
     if(setvbuf(stdout,NULL,_IONBF,NULL) != 0){
         perror('setvbuf');
     }
@@ -295,12 +290,10 @@ int main(int argc, char* argv[]){
 
 				// Check to see whether this is malformed
 
-
                             } else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){
                                 struct save_state_request * ssr = (struct save_state_request *) udp_read_buffer;
 
 				// Check to see whether this is malformed
-
 				process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,oldest,mr_array);
 			    }
 
@@ -380,19 +373,11 @@ int main(int argc, char* argv[]){
                             memcpy(bufferd->buffer+bufferd->buffer_size,read_buffer,read_bytes);
                         }
                         bufferd->buffer_size += read_bytes;
-
-			printf("Out of while\n");
                         while (bufferd->buffer_size >= bufferd->desire_length){
-			  printf("Inside while\n");
-			  printf("bufferd->flag:%d",bufferd->flag);
 			  if(bufferd->flag == HEADER){
 			    int j;
 			    for(j = 0; j < HEADER_LENGTH; j++){ header_c[j] = *(bufferd->buffer+j);}
 			    hdr = (struct header *) header_c;
-			    
-			    printf("Header: ");
-			    printMessage(hdr,4);
-			    
 			    if (check_malformed_header(hdr->version,ntohs(hdr->len),hdr->msgtype) < 0){
 			      close(i);
 			      FD_CLR(i,&login);
@@ -495,8 +480,7 @@ int main(int argc, char* argv[]){
                                         struct move * m = (struct move *) payload_c;
                                         int direction = m->direction;
                                         Player * player;                     
-                                        if (fdnamemap[i]) {
-                                            player = findPlayer(fdnamemap[i],mylist);
+                                        if (fdnamemap[i]) { player = findPlayer(fdnamemap[i],mylist);
                                         } else {
                                             fprintf(stderr, "THIS SHOULD NEVER HAPPEN\n");
                                         }
@@ -545,7 +529,7 @@ int main(int argc, char* argv[]){
                                             abort();
                                         }
                                     } else {
-                                        // #TODO: HAVE TO CHECK FOR THE NAME
+                                        // #TODO: HAVE TO CECK FOR THE NAME
                                         struct attack * attackPayload = (struct attack *) payload_c;
                                         char * victim = attackPayload->victimname;
                                         if (check_player_name(victim) == 0){
@@ -574,12 +558,7 @@ int main(int argc, char* argv[]){
                                         } else {
                                             fprintf(stderr,"server.c - attack - THIS SHOULD NEVER HAPPEN.\n");
                                         }
-                                        process_attack(i,
-                                                fdmax,
-                                                login,
-                                                attacker,
-                                                victim,
-                                                mylist);
+                                        process_attack(i,fdmax,login,attacker,victim,mylist);
                                     }
                                 } else if(hdr->msgtype == SPEAK){ // SPEAK
                                     if (!FD_ISSET(i,&login)){ // if not login,
@@ -611,18 +590,13 @@ int main(int argc, char* argv[]){
                                                 }
                                                 cleanNameMap(fdnamemap,i);
                                             }
-
-                                            // Cleaning up
                                             cleanBuffer(fdbuffermap,i);
                                             break;
                                         }
                                         int msglen = strlen(payload_c)+1+10+HEADER_LENGTH;
                                         int totallen;
-                                        if(msglen%4){
-                                            totallen = msglen + (4 - msglen%4);
-                                        } else {
-                                            totallen = msglen;
-                                        }
+                                        if(msglen%4) totallen = msglen + (4 - msglen%4);
+					else totallen = msglen;
                                         unsigned char spktosent[totallen];
                                         createspeaknotify(fdnamemap[i],payload_c,totallen,spktosent);
                                         printMessage(spktosent,totallen);

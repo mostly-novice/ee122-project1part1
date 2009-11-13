@@ -165,11 +165,10 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int o
 	FILE * file = fopen(name,"r"); // open the file
 	int hp;
 	int exp;
-	char x;
-	char y;
+	int x;
+	int y;
 
 	if(file){ // If this file existed
-		printf("File existed\n");
 		fscanf(file,"%d%d%d%d",&hp,&exp,&x,&y);
 		fclose(file);
 	} else{ // If it doesn't
@@ -194,7 +193,6 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int o
 	printf("Stats:%d %d %d %d\n", hp,exp,x,y);
 	// At this point, we should have all the data to form the PLAYER_STATE_RESPONSE
 	char buffer[PLAYER_STATE_RESPONSE_SIZE];
-	printf("ID:%d\n", ntohs(id));
 	createpsr(name,hp,exp,x,y,id,buffer);
 	udpunicast(udpsock,targetsin,buffer,PLAYER_STATE_RESPONSE_SIZE);
 
