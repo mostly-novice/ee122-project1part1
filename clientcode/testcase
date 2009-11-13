@@ -1,0 +1,50 @@
+#################
+Tests for clients:
+#################
+
+Functionals:
+Login
+Switching between server
+Logout
+
+Exceptions:
+Actions before login: move, speak, attack, login
+Send from an invalid source
+     Server keeps sending out slr to client
+
+Send a malformed slr
+Send a malformed psr
+     Send with bad name
+     Send with bad x
+     Send with bad y
+Send a malformed sares
+     Send with bad max_x,min_x,max_y,min_y
+Send a malformed ssr
+Unavailable Tracker
+
+
+
+#################
+Tests for server
+#################
+
+Functional:
+Players respawn
+Resend dropping packet
+Handling players logging out correctly
+
+Malformed UDP:
+Bad msgtype
+Bad ID;
+Bad boundary: minx > max_x; maxx = 100000, maxx belongs in some boundary
+Bad name - too long, unprintable character
+Bad hp, bad exp // Untestable
+
+Duplicates udp messages
+
+#################
+Test for trackers
+#################
+Malformed UDP:
+Bad msgtype
+Bad player name
