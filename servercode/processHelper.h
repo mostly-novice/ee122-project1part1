@@ -12,8 +12,8 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
 	Player * newplayer = (Player *) malloc(sizeof(Player));
 
 	memcpy(newplayer->name,name,10);
-	newplayer->hp = hp;
-	newplayer->exp = exp;
+	newplayer->hp = ntohl(hp);
+	newplayer->exp = ntohl(exp);
 	newplayer->x = x;
 	newplayer->y = y;
 

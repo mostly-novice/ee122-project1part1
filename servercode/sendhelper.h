@@ -180,8 +180,8 @@ void createpsr(char *name, unsigned int hp, unsigned int exp, unsigned char x, u
   strcpy(psr->name,name);
   psr->message_type = PLAYER_STATE_RESPONSE;
   psr->id   = id;
-  psr->hp   = hp;
-  psr->exp  = exp;
+  psr->hp   = htonl(hp);
+  psr->exp  = htonl(exp);
   psr->x    = x;
   psr->y    = y;
 
@@ -194,7 +194,7 @@ void create_ss_response(int id,char success,char buffer[]){
     struct save_state_response * ssr = (struct save_state_response *) malloc (sizeof(struct save_state_response));
 
     ssr->message_type = SAVE_STATE_RESPONSE;
-    ssr->id = id;	// SHOULD THIS BE HTONL() ??
+    ssr->id = id;
     ssr->error_code = success;
     char * toreturn = (char*) ssr;
     int j;
@@ -203,7 +203,6 @@ void create_ss_response(int id,char success,char buffer[]){
     for(j = 0; j < 8; j++){
         buffer[j] = toreturn[j];
     }
-    //strcpy(buffer,toreturn);//,SAVE_STATE_RESPONSE_SIZE);
 }
 
 int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expected){
