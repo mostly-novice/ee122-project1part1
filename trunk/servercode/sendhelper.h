@@ -15,7 +15,6 @@ unsigned char * createloginreply( unsigned char error_code,
   hdr->len = htons(0x0010);
   hdr->msgtype = LOGIN_REPLY;
 
-  printf("hp in createloginreply: %d\n",hp);
   payload->error_code = error_code;
   payload->hp = htonl(hp);
   payload->exp = htonl(exp);
@@ -48,7 +47,6 @@ void createmovenotify(char* name,
   for(i = 0; i < 10; i++){
     payload->name[i] = *(name+i);
   }
-  printf("hp in createmovenotify: %d\n",hp);
   payload->hp = htonl(hp);
   payload->exp = htonl(exp);
   payload->x = x;
@@ -103,8 +101,6 @@ unsigned char * createspeaknotify(unsigned char* broadcaster,
 				  char buffer[]){
   int i = 0;
   int j;
-  printMessage(message,totallen-4);
-  printMessage(broadcaster,10);
   struct header *hdr = (struct header *) malloc(sizeof(int)); // remember to free this
   hdr->version = 0x04;
   hdr->len = htons(totallen);
@@ -132,7 +128,6 @@ unsigned char * createlogoutnotify(Player* player,char buffer[]){
   hdr->len = htons(0x00018);
   hdr->msgtype = LOGOUT_NOTIFY;
 
-  printf("player name inside createlogoutnotify:%s\n",player->name);
   strcpy(payload->name,player->name);
 
   payload->hp = htonl(player->hp);
@@ -178,7 +173,6 @@ void createinvalidstate(unsigned char error_code, char buffer[]){
 
 void createpsr(char *name, unsigned int hp, unsigned int exp, unsigned char x, unsigned char y, unsigned int id,char buffer[]){
   struct player_state_response * psr = (struct player_state_response *) malloc(sizeof(struct player_state_response));
-  printf("Stats inside createpsr:hp:%d exp:%d x:%d y:%d\n", hp,exp,x,y);
 
   strcpy(psr->name,name);
   psr->message_type = PLAYER_STATE_RESPONSE;
@@ -193,7 +187,6 @@ void createpsr(char *name, unsigned int hp, unsigned int exp, unsigned char x, u
 }
 
 void create_ss_response(int id,char success,char buffer[]){
-    printf("Processing creation of SAVE_STATE_RESPONSE with success %c and id %d\n",success,id);
     struct save_state_response * ssr = (struct save_state_response *) malloc (sizeof(struct save_state_response));
 
     ssr->message_type = SAVE_STATE_RESPONSE;
@@ -211,10 +204,7 @@ void create_ss_response(int id,char success,char buffer[]){
 int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expected){
   int i;
   for(i=0; i<fdmax+1;i++){
-    //printf("Is socket %d logged in? %d\n",i,FD_ISSET(i,&login));
     if (FD_ISSET(i,&login)){
-      printf("Sending to sock %d:", i);
-      printMessage(tosent,expected);
       int bytes_sent = send(i, tosent,expected,0);
       if (bytes_sent < 0) perror("send failed");
     }
@@ -227,8 +217,6 @@ int broadcast(fd_set login, int sock, int fdmax, unsigned char * tosent,int expe
  * expected: is the size you expected
  */
 int unicast(int sock, unsigned char * tosent, int expected){
-  printf("Sending(unicast)...:");
-  printMessage(tosent,expected);
   int bytes_sent = send(sock, tosent,expected,0);
   if (bytes_sent < 0){
     perror("send failed");
@@ -238,9 +226,6 @@ int unicast(int sock, unsigned char * tosent, int expected){
 }
 
 int udpunicast(int udpsock, struct sockaddr_in targetsin, unsigned char * tosent, int expected){
-  printf("Sending(udpunicast) of size %d...",expected);
-//  printf("Message sent: %x",tosent);
-  printMessage(tosent,expected);
   int bytes_sent = sendto(udpsock, tosent,expected,0,(struct sockaddr *) &targetsin,sizeof(targetsin));
   if (bytes_sent < 0){
     perror("send failed");
