@@ -43,6 +43,11 @@ static inline void on_udp_attempt(int attempt) {
   fflush(stdout);
 }
 
+static inline void on_udp_fail(){
+  fprintf(stdout, "Error: did not obtain response from server.\n");
+  fflush(stdout);
+}
+
 static inline void on_loc_resp(unsigned char type,unsigned int ipaddr, unsigned short udpport) {
   fprintf(stdout, "**LOC Resp - TYPE: %d IPADDR: %x UDPPORT: %x.\n", type, ipaddr, udpport);
   fflush(stdout);

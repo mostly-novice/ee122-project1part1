@@ -1,0 +1,4 @@
+int main(){
+  int x = 4;
+  printf("%d\n",pow(x,4));
+}

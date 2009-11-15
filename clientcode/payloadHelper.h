@@ -1,15 +1,13 @@
 int process_login_reply(char payload_c[],Player * self){
   struct login_reply * lreply = (struct login_reply *) payload_c;
-  //check_malformed_stats(lreply->x,lreply->x,ntohl(lreply->hp),ntohl(lreply->exp));
-  on_login_reply(lreply->error_code);
   if(lreply->error_code == 0){
     self->hp = ntohl(lreply->hp);
     self->exp = ntohl(lreply->exp);
     self->x = lreply->x;
     self->y = lreply->y;
-    return 1;
+    return lreply->error_code;
   }
-  return 0;
+  return lreply->error_code;
 }
 
 int process_move_notify(char payload_c[], Player * self, LinkedList * mylist){
