@@ -11,7 +11,6 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
 	// make a new instance of Player
 	Player * newplayer = (Player *) malloc(sizeof(Player));
 
-	printf("hp in process_login_request: %d\n",hp);
 
 	memcpy(newplayer->name,name,10);
 	newplayer->hp = ntohl(hp);
@@ -33,7 +32,6 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
 		Node * p;
 		for(p = activeList->head; p != NULL; p = p->next){
 			if (strcmp(p->datum->name,newplayer->name)!=0){
-				printf("Sending to:%s\n",newplayer->name);
 				Player * player = p->datum;
 				createmovenotify(player->name,
 						player->hp,
@@ -114,7 +112,6 @@ int process_attack(int sock,
 				broadcast(login,sock,fdmax,mntosent,MOVE_NOTIFY_SIZE);
 			}
 		} else {
-			printf("Ignoring the message because attacker has the same name as victim.\n");
 		}
 	}
 }
@@ -163,7 +160,6 @@ int process_invalid_state(char payload_c[]){
 
 // Processing PLAYER_STATE_REQUEST
 int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int oldest,message_record** mr_array,int badMessageTypeFlag){
-	printf("Processing PLAYER_STATE_REQUEST\n");
 	FILE * file = fopen(name,"r"); // open the file
 	int hp;
 	int exp;
@@ -174,7 +170,6 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int o
 		fscanf(file,"%d%d%d%d",&hp,&exp,&x,&y);
 		fclose(file);
 	} else{ // If it doesn't
-		printf("File not existed\n");
 		// Randomize the data
 		srand(time(NULL));
 		hp = 100 + rand()%21;
@@ -187,12 +182,10 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int o
 		if(file2 == NULL) perror("file open");
 
 		// Write to file
-		printf("Writing HP:%d, EXP:%d, X:%d, Y:%d\n",hp,exp,x,y);
 		fprintf(file2,"%d %d %d %d",hp,exp,x,y);
 		fclose(file2);
 	}
 
-	printf("Stats:%d %d %d %d\n", hp,exp,x,y);
 	// At this point, we should have all the data to form the PLAYER_STATE_RESPONSE
 	char buffer[PLAYER_STATE_RESPONSE_SIZE];
 	createpsr(name,hp,exp,x,y,id,buffer);
@@ -218,7 +211,6 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int o
 
 // process_ssr : process save state request
 int process_ss_request(char* name,int hp, int exp, char x, char y, int udpsock, struct sockaddr_in targetsin, int id,int oldest,message_record** mr_array,int faultyErrorCodeFlag){
-	printf("Processing SAVE_STATE_REQUEST\n");
 	FILE * file = fopen(name,"w+");
 	int myhp = ntohl(hp);
 	int myexp = ntohl(exp);
@@ -230,7 +222,6 @@ int process_ss_request(char* name,int hp, int exp, char x, char y, int udpsock, 
 	if(faultyErrorCodeFlag){
 		success=9;
 	}
-	printf("Writing player %s with hp %d exp %d x %d y %d\n",name,hp,exp,x,y);
 	fprintf(file,"%d %d %d %d",myhp,myexp,x,y);
 	fclose(file);
 
