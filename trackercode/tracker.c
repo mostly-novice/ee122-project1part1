@@ -1,4 +1,3 @@
-// Tracker code
 #include <stdio.h>
 #include <stdlib.h>
 #include "constants.h"
@@ -115,7 +114,7 @@ int main(int argc, char* argv[]){
   listener = socket(AF_INET, SOCK_DGRAM, 0);
   if(listener < 0){
     perror("socket() failed\n"); abort();
-  } else { printf("Listenning sock is ready. Sock: %d\n",listener);}
+  }
   
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = INADDR_ANY;
@@ -157,22 +156,12 @@ int main(int argc, char* argv[]){
 	    close(i); // bye!
 	  } else {
 	    char msgtype = read_buffer[0];
-	    fprintf(stdout,"RECEIVED from %s\n", inet_ntoa(clientaddr.sin_addr));
-	    printMessage(read_buffer,read_bytes);
-
-	    printMessageRecord(mr_array);
-
 	    unsigned int ip = clientaddr.sin_addr.s_addr;
-
-	    int id = (read_buffer[1]<<24)+(read_buffer[2]<<16)+(read_buffer[3]<<8)+read_buffer[4];
-	    printf("id:%x\n",id);
-
+	    unsigned int id = (read_buffer[4]<<24)+(read_buffer[3]<<16)+(read_buffer[2]<<8)+read_buffer[1];
 	    int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
 
 	    if(dup >= 0){
-	      on_udp_duplicate(htonl(ip));
-
-	      // Resend the message based on the type
+	      on_udp_duplicate(ip);
 	      if(msgtype==STORAGE_LOCATION_REQUEST){
 		sendto(i,mr_array[dup]->message,
 		       STORAGE_LOCATION_RESPONSE_SIZE,
@@ -190,7 +179,6 @@ int main(int argc, char* argv[]){
 	      
 	    } else if(msgtype==STORAGE_LOCATION_REQUEST){
 	      struct storage_location_request * slr = (struct storage_location_request*) read_buffer;
-	      // Find the server record
 
 	      // TODO: Check the ID
 	      char * name = slr->name;
@@ -201,7 +189,7 @@ int main(int argc, char* argv[]){
 	      server_record * sr = sr_array[srindex];
 	      char slrespond[STORAGE_LOCATION_RESPONSE_SIZE];
 
-	      createslrespond(sr,ntohl(slr->id),slrespond);
+	      createslrespond(sr,slr->id,slrespond);
 
 	      message_record * new_mr = (message_record*) malloc(sizeof(message_record));
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
@@ -214,9 +202,6 @@ int main(int argc, char* argv[]){
 	      }
 	      mr_array[oldest] = new_mr;
 	      oldest = (oldest + 1)%MAX_MESSAGE_RECORD;
-
-	      printf("Sending STORAGE_LOCATION_RESPONSE.\n");
-	      printMessage(slrespond,STORAGE_LOCATION_RESPONSE_SIZE);
 
 	      int sent_bytes = sendto(i,
 				      slrespond,
@@ -231,7 +216,6 @@ int main(int argc, char* argv[]){
 	      }
 
 	    } else if(msgtype==SERVER_AREA_REQUEST){
-	      printMessage(read_buffer,SERVER_AREA_REQUEST_SIZE);
 	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
 	      // TODO: Check if the value in the package is valid
 	      int server_id = findServer(sareq->x,server_count,sr_array);
@@ -239,7 +223,7 @@ int main(int argc, char* argv[]){
 
 	      char sarespond[SERVER_AREA_RESPONSE_SIZE];
 	      memset(&sarespond,0,SERVER_AREA_RESPONSE_SIZE);
-	      createsarespond(sr,ntohl(sareq->id),sarespond);
+	      createsarespond(sr,sareq->id,sarespond);
 	      
 	      message_record * new_mr = (message_record*) malloc(sizeof(message_record));
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
@@ -252,9 +236,6 @@ int main(int argc, char* argv[]){
 	      }
 	      mr_array[oldest] = new_mr;
 	      oldest = (oldest + 1)%MAX_MESSAGE_RECORD;
-
-	      printf("Sending SERVER_AREA_RESPONSE.\n");
-	      printMessage(sarespond,SERVER_AREA_RESPONSE_SIZE);
 
 	      int sent_bytes = sendto(i,
 				      sarespond,

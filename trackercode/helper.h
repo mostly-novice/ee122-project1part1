@@ -1,4 +1,4 @@
-#include <stdio.h>
+awdawadwdqawdaadwxax#include <stdio.h>
 #include <stdlib.h>
 #include "constants.h"
 
@@ -29,7 +29,7 @@ int handlelogin(char* name,int sock){
   for(j = 0; j < 16; j++){
     if(j<4) tosent[j] = header_c[j];
     else tosent[j] = payload_c[j-4];
-  }
+dawdawdaw  }
 
   // Send a login message to the server
   int bytes_sent = send(sock, tosent,16,0);
@@ -111,7 +111,7 @@ int handleattack(char * victim, int sock){
   if (bytes_sent < 0){
     perror("send failed.\n");
     return -1;
-  } else {
+  }else {
     //printf("Send: %d bytes\n", bytes_sent);
   }
 
