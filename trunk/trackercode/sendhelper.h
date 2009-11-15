@@ -1,11 +1,11 @@
 // Helper to send messages.
-void createslrespond(server_record * sr, int id, char buffer[]){
+void createslrespond(unsigned int ip, unsigned short port, int id, char buffer[]){
   struct storage_location_response* slr = (struct storage_location_response*) malloc (sizeof(char)*STORAGE_LOCATION_RESPONSE_SIZE);
 
   slr->message_type = STORAGE_LOCATION_RESPONSE;
   slr->id = id;
-  slr->server_ip = sr->ip;
-  slr->udpport = htons(sr->udp_port);
+  slr->server_ip = ip;
+  slr->udpport = htons(port);
 
   unsigned char*tosent = (unsigned char *) slr;
   int i;

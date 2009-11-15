@@ -46,7 +46,7 @@ void printMessage(char * message, int len){
 unsigned int hash(char*s){
   unsigned int hashval;
   for (hashval=0;*s!=0;s++){
-    hashval += *s+31*hashval;
+    hashval = *s+31*hashval;
   }
   return hashval;
 }
@@ -78,7 +78,6 @@ int main(int argc, char* argv[]){
 
   struct sockaddr_in sin;
   struct sockaddr_in clientaddr;
-  int sin_len;
   memset(&sin, 0, sizeof(sin));
   
 
@@ -145,6 +144,7 @@ int main(int argc, char* argv[]){
 	if (i!=listener){ // NEW CONNECTION COMING IN
 	} else { // If someone has data
 	  unsigned char read_buffer[4096];
+	  int sin_len = sizeof(clientaddr);;
 	  int read_bytes = recvfrom(i,
 				    read_buffer,
 				    sizeof(read_buffer),
@@ -189,7 +189,7 @@ int main(int argc, char* argv[]){
 	      server_record * sr = sr_array[srindex];
 	      char slrespond[STORAGE_LOCATION_RESPONSE_SIZE];
 
-	      createslrespond(sr,slr->id,slrespond);
+	      createslrespond(sr->ip,sr->udp_port,slr->id,slrespond);
 
 	      message_record * new_mr = (message_record*) malloc(sizeof(message_record));
 	      new_mr->ip = clientaddr.sin_addr.s_addr;
