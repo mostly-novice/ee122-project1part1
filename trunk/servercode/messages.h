@@ -175,7 +175,6 @@ static inline int check_player_message(const char *message)
   return 0;
 }
 
-
 static inline int check_malformed_header(int version, int len, int msgtype){
   if(version != 4){
     printf("Version is invalid - %d\n", version);
@@ -194,10 +193,16 @@ static inline int check_malformed_header(int version, int len, int msgtype){
 }
 
 static inline int check_malformed_stats(int x, int y, int hp, int exp){
-  if(x < 0 || x > 99){ on_malformed_message_from_server(); }
-  if(y < 0 || y > 99){ on_malformed_message_from_server();}
-  if(hp < 1){on_malformed_message_from_server();}
-  if(exp < 0){on_malformed_message_from_server();}
+  if(x < 0 || x > 99){ printf("BAD X/Y\n"); on_malformed_message_from_server(); }
+  if(y < 0 || y > 99){ printf("BAD X/Y\n"); on_malformed_message_from_server();}
+  if(hp < 1){
+	  printf("BAD HP\n");
+	  on_malformed_message_from_server();
+  }
+  if(exp < 0){
+	  printf("BAD EXP\n");
+	  on_malformed_message_from_server();
+  }
   return 0;
 }
 
