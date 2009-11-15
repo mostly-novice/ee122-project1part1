@@ -132,8 +132,9 @@ unsigned char * createlogoutnotify(Player* player,char buffer[]){
 
   printf("player name inside createlogoutnotify:%s\n",player->name);
   strcpy(payload->name,player->name);
-  payload->hp = player->hp;
-  payload->exp = player->exp;
+
+  payload->hp = htonl(player->hp);
+  payload->exp = htonl(player->exp);
   payload->x = player->x;
   payload->y = player->y;
 

@@ -93,6 +93,9 @@ void cleanNameMap(char ** fdnamemap,int i){
 #include "aux.h"
 int main(int argc, char* argv[]){
 
+    mkdir(DIR);
+    chdir(DIR);
+
     // Model Variables
     LinkedList * mylist = (LinkedList *) malloc (sizeof(LinkedList));
     mylist->head = NULL;
@@ -146,12 +149,17 @@ int main(int argc, char* argv[]){
 
     if(argc != 5){ printf("Usage: ./server -t <server TCP port> -u <server UDP port");  exit(0);}
 
+    // Error  flags
+    int badMessageTypeFlag = 0;
+    int lossy = 0;
+    int faultyErrorCodeFlag = 0;
+    int lossycount = 0;
     // Initilizations
     int c;
     char* uvalue=NULL;
     char* tvalue=NULL;
 
-    while( (c=getopt( argc,argv,"u:t:"))!=-1){
+    while( (c=getopt( argc,argv,"u:t:l:a:b:"))!=-1){
         switch(c){
             case 'u':
                 uvalue=optarg;
@@ -159,6 +167,15 @@ int main(int argc, char* argv[]){
             case 't':
                 tvalue=optarg;
                 break;
+	    case 'l':
+		lossy=1;
+		break;
+	    case 'a':
+		badMessageTypeFlag=1;
+		break;
+	    case 'b':
+		faultyErrorCodeFlag=1;
+		break;
             default:
                 printf("Usage: ./server -t <server TCP port> -u <server UDP port");
                 return 0;
@@ -246,6 +263,13 @@ int main(int argc, char* argv[]){
                  */ 
 
                 if (i==udplistener){ 
+		    /* MAKE IT LOSSY */	
+		    lossycount++;
+		    
+		    if(lossy && lossycount%2){
+			    continue;
+		    }
+
                     printf("Got a udp message\n");
                     unsigned char udp_read_buffer[4096];
                     int expected_data_len = sizeof(udp_read_buffer);
@@ -286,7 +310,7 @@ int main(int argc, char* argv[]){
 
                             if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
                                 struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
-                                process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array);
+                                process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array,badMessageTypeFlag);
 
 				// Check to see whether this is malformed
 
@@ -294,7 +318,7 @@ int main(int argc, char* argv[]){
                                 struct save_state_request * ssr = (struct save_state_request *) udp_read_buffer;
 
 				// Check to see whether this is malformed
-				process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,oldest,mr_array);
+				process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,oldest,mr_array,faultyErrorCodeFlag);
 			    }
 
 			    //	Update Duplicate message check
@@ -438,8 +462,7 @@ int main(int argc, char* argv[]){
                                             }
                                             cleanBuffer(fdbuffermap,i);
                                             break;
-                                        }
-                                        if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
+                                        }else if (isnameinmap(lr->name,fdnamemap)){ // If the name is already used
                                             // Send a login request with an errorcode 1
                                             Player * newplayer = process_login_request(1,i,fdmax,login,lr->name,lr->hp,lr->exp,lr->x,lr->y,mylist);
                                         } else {
@@ -615,6 +638,7 @@ int main(int argc, char* argv[]){
                                         if(fdnamemap[i]){
                                             Player * player = findPlayer(fdnamemap[i],mylist);
                                             if(player){
+						printf("found player %s...logging him out\n",player->name);
                                                 unsigned char lntosent[LOGOUT_NOTIFY_SIZE];
                                                 createlogoutnotify(player,lntosent);
                                                 broadcast(login,i,fdmax,lntosent,LOGOUT_NOTIFY_SIZE);
@@ -657,7 +681,7 @@ int main(int argc, char* argv[]){
             } // end FD_ISSET
         }  // end foreach fd
         if (timeout){
-            updateHP(mylist);
+            //updateHP(mylist);
             lasttime = currenttime;
         }
     } // end main while(1) loop

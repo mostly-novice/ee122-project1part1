@@ -15,6 +15,7 @@ unsigned char * createloginreply( unsigned char error_code,
   hdr->len = htons(0x0010);
   hdr->msgtype = LOGIN_REPLY;
 
+  printf("hp in createloginreply: %d\n",hp);
   payload->error_code = error_code;
   payload->hp = htonl(hp);
   payload->exp = htonl(exp);
@@ -47,6 +48,7 @@ void createmovenotify(char* name,
   for(i = 0; i < 10; i++){
     payload->name[i] = *(name+i);
   }
+  printf("hp in createmovenotify: %d\n",hp);
   payload->hp = htonl(hp);
   payload->exp = htonl(exp);
   payload->x = x;
@@ -132,8 +134,9 @@ unsigned char * createlogoutnotify(Player* player,char buffer[]){
 
   printf("player name inside createlogoutnotify:%s\n",player->name);
   strcpy(payload->name,player->name);
-  payload->hp = player->hp;
-  payload->exp = player->exp;
+
+  payload->hp = htonl(player->hp);
+  payload->exp = htonl(player->exp);
   payload->x = player->x;
   payload->y = player->y;
 
