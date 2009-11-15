@@ -147,7 +147,7 @@ int main(int argc, char* argv[]){
     int sin_len;
 
 
-    if(argc != 5){ printf("Usage: ./server -t <server TCP port> -u <server UDP port");  exit(0);}
+  //  if(argc != 5){ printf("Usage: ./server -t <server TCP port> -u <server UDP port");  exit(0);}
 
     // Error  flags
     int badMessageTypeFlag = 0;
