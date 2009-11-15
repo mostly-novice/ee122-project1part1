@@ -464,8 +464,10 @@ int main(int argc, char* argv[]){
 											abort();
 										}
 									} else { // If he is not logged in
+										
+								//if(check_malformed_stats(ssr->x,ssr->y,ntohl(ssr->hp),ntohl(ssr->exp))!=0){
 										struct login_request * lr = (struct login_request *) payload_c;
-										if(check_player_name(lr->name)==0){
+										if(check_player_name(lr->name)==0 || check_malformed_stats(lr->x,lr->y,ntohl(lr->hp),ntohl(lr->exp))!=0){
 											close(i);
 											FD_CLR(i,&login);
 											FD_CLR(i,&master);
