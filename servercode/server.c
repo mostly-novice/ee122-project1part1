@@ -216,6 +216,7 @@ int main(int argc, char* argv[]){
 	}
 
 	if (bind(listener,(struct sockaddr *) &sin, sizeof(sin)) < 0){
+		// DO I NEED TO SEND THIS??? message_on_server_port_bind_failure();
 		perror("Bind failed");
 		abort();
 	}
@@ -285,7 +286,7 @@ int main(int argc, char* argv[]){
 					if(read_bytes < 0){
 						perror("Server - Recvfrom Failed - read_bytes return -1\n");
 						close(i); // bye!
-					} else {
+					} else { // read succedded, proceed
 
 						char msgtype = udp_read_buffer[0];
 						unsigned int ip = udpsin.sin_addr.s_addr;
@@ -314,15 +315,31 @@ int main(int argc, char* argv[]){
 
 							if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
 								struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
+								//check name
+								if(check_player_name(psr->name)==0){	
+									printf("PLAYER NAME IS BAD\n");
+									continue;
+								}
 								process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array,badMessageTypeFlag);
 
-								// Check to see whether this is malformed
 
 							} else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){
 								struct save_state_request * ssr = (struct save_state_request *) udp_read_buffer;
-
-								// Check to see whether this is malformed
+								//check name
+								if(check_player_name(ssr->name)==0){
+									printf("PLAYER NAME IS BAD\n");
+									continue;
+								}
+								//check stats
+								if(check_malformed_stats(ssr->x,ssr->y,ntohl(ssr->hp),ntohl(ssr->exp))!=0){
+									printf("STATS ARE BAD\n");
+									continue;
+								}
 								process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,oldest,mr_array,faultyErrorCodeFlag);
+							}else{
+								// malformed type
+								on_malformed_udp(3);
+								continue;
 							}
 
 							//	Update Duplicate message check
@@ -449,8 +466,6 @@ int main(int argc, char* argv[]){
 									} else { // If he is not logged in
 										struct login_request * lr = (struct login_request *) payload_c;
 										if(check_player_name(lr->name)==0){
-											printf("checking player name (%s) returned 0 !!! ahhhhh!\n",lr->name);
-											exit(0);
 											close(i);
 											FD_CLR(i,&login);
 											FD_CLR(i,&master);
