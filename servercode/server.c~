@@ -51,6 +51,7 @@ int findDup(message_record ** mr_array,int id, int ip){
 	for(i = 0; i <MAX_MESSAGE_RECORD;i++){
 		message_record * mr = mr_array[i];
 		if(mr){
+			printf("mr %d exists\n",i);
 			if(mr->ip == ip && mr->id == id){
 				return i;
 			}
@@ -290,7 +291,7 @@ int main(int argc, char* argv[]){
 
 						char msgtype = udp_read_buffer[0];
 						unsigned int ip = udpsin.sin_addr.s_addr;
-						int id = (udp_read_buffer[1]<<24)+(udp_read_buffer[2]<<16)+(udp_read_buffer[3]<<8)+udp_read_buffer[4];
+					        unsigned int id = (udp_read_buffer[4]<<24)+(udp_read_buffer[3]<<16)+(udp_read_buffer[2]<<8)+udp_read_buffer[1];
 						int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
 
 						// ON DUPLICATE
@@ -316,7 +317,7 @@ int main(int argc, char* argv[]){
 							if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
 								struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
 								//check name
-								if(check_player_name(psr->name)!=0){	
+								if(check_player_name(psr->name)==0){	
 									printf("PLAYER NAME IS BAD\n");
 									continue;
 								}
