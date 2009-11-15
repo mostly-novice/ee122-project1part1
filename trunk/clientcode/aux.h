@@ -58,3 +58,29 @@ void freeMessageRecords(message_record ** mr_array){
   free(mr_array);
   fprintf(stdout,"Free mr_array.\n");
 }
+
+enum {
+  FAULT_TYPE_NONE = 0,
+  FAULT_INVALID_MSGTYPE,
+  FAULT_LOSSY_CHANNEL,
+  FAULT_DUPLICATE_ON_SLR,
+  FAULT_DUPLICATE_ON_PSR,
+  FAULT_DUPLICATE_ON_SAR,
+};
+
+static void usage()
+{
+  fprintf(stdout,
+          " On a fault, the client will disconnect.\n"
+          " Thus, only one fault can be given.\n"
+          " Fault types: %d=%s\n"
+          "              %d=%s\n"
+          "              %d=%s\n"
+          "              %d=%s\n"
+          "              %d=%s\n",
+          FAULT_INVALID_MSGTYPE, "Invalid msgtype on ssr",
+	  FAULT_LOSSY_CHANNEL, "Lossy channel",
+          FAULT_DUPLICATE_ON_SLR, "Send slrequest twice",
+	  FAULT_DUPLICATE_ON_PSR, "Send psrequest twice",
+	  FAULT_DUPLICATE_ON_SAR, "Send sarequest twice");
+}

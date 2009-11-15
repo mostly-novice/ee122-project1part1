@@ -20,6 +20,7 @@
 // Flags
 #define HEADER 0
 #define PAYLOAD 1
+#define FAULT_TYPE_MAX 10;
 
 typedef struct P{
   char name[10];
@@ -216,6 +217,10 @@ int main(int argc, char* argv[]){
   fd_set readfds;
   fd_set writefds;
 
+  // Debugging
+  int s_fault;
+  int lossycount = 0;
+
   struct sockaddr_in trackersin,serversin,dbserversin,sendersin;
 
   sendersin.sin_family = AF_INET;
@@ -225,14 +230,12 @@ int main(int argc, char* argv[]){
   srand(time(NULL));
   int currentID = rand()%100;
 
-  if(argc < 4){ printf("Usage: ./client -s <tracker IP address> -p <tracker port>"); exit(0);}
-
   // Initilizations
   int c;
   char* svalue=NULL;
   char* pvalue=NULL;
 
-  while( (c=getopt( argc,argv,"s:p:"))!=-1){
+  while( (c=getopt( argc,argv,"s:p:f:h:"))!=-1){
     switch(c){
     case 's':
       svalue=optarg;
@@ -240,8 +243,14 @@ int main(int argc, char* argv[]){
     case 'p':
       pvalue=optarg;
       break;
+    case 'f':
+      s_fault = atoi(optarg);
+      break;
+    case 'h':
+      usage();
+      break;
     default:
-      printf("Usage: ./client -s <tracker IP address> -p <tracker port>");
+      usage();
       return 0;
     }
   }
@@ -466,6 +475,14 @@ int main(int argc, char* argv[]){
       unsigned char read_buffer[4096];
       socklen_t addrLen = sizeof(sendersin);
       int read_bytes = recvfrom(udpsock,read_buffer,sizeof(read_buffer),0,(struct sockaddr *) &sendersin,&addrLen);
+
+      if (s_fault==FAULT_LOSSY_CHANNEL){
+	lossycount++;
+	if(lossycount%3){
+	  //intf("Dropping packet.\n");
+	  continue;
+	}
+      }
       if (read_bytes < 0){
 	perror("Handling data from UDP sock: read_bytes == -1");
       }
@@ -473,7 +490,9 @@ int main(int argc, char* argv[]){
       int ip = sendersin.sin_addr.s_addr;
       char msgtype = read_buffer[0];
       if(tobeack->message != NULL && (tobeack->ip!=ip || tobeack->id!=currentID-1)){
-	on_malformed_udp();
+	if (tobeack->ip!=ip) on_invalid_udp_source();
+	if (tobeack->id!=currentID-1) on_malformed_udp();
+	printf("something is weird\n");
       } else {
 	// Free the last tobeack
 	if(tobeack->message) free(tobeack->message);
@@ -576,19 +595,14 @@ int main(int argc, char* argv[]){
 	    }
 	    struct save_state_response * ssres = (struct save_state_response *) read_buffer;
 	    on_save_resp(msgtype,ssres->error_code);
-
-	    // Clean up the player list
-	    freePlayers(mylist);
-	    free(mylist);
-
-	    // Free self
-	    free(self);
-
-	    // Now official logging out
-	    if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
-	  
-	    on_disconnection_from_server();
-	    break;
+	    if(ssres->error_code==0){
+	      freePlayers(mylist);
+	      free(mylist);
+	      free(self);
+	      if (handlelogout(self->name,tcpsock) < 0){ perror("handlelogout");}
+	      on_disconnection_from_server();
+	      break;
+	    }
 	  }
 	} else {
 	  on_malformed_udp();
@@ -706,7 +720,7 @@ int main(int argc, char* argv[]){
 	    sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
 	  
 	  } else if(tosent[0] == SERVER_AREA_REQUEST){
-	    sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,(struct sockaddr*)&serversin,sizeof(serversin));
+	    sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
 	  
 	  } else if(tosent[0] == SAVE_STATE_REQUEST){
 	    sendto(udpsock,tosent,SAVE_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
