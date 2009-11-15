@@ -3,7 +3,7 @@ void createslrespond(server_record * sr, int id, char buffer[]){
   struct storage_location_response* slr = (struct storage_location_response*) malloc (sizeof(char)*STORAGE_LOCATION_RESPONSE_SIZE);
 
   slr->message_type = STORAGE_LOCATION_RESPONSE;
-  slr->id = htonl(id);
+  slr->id = id;
   slr->server_ip = sr->ip;
   slr->udpport = htons(sr->udp_port);
 
@@ -20,7 +20,7 @@ void createsarespond(server_record * sr, int id,char buffer[]){
   struct server_area_response* sares = (struct server_area_response*) malloc (sizeof(char)*SERVER_AREA_RESPONSE_SIZE);
 
   sares->message_type = SERVER_AREA_RESPONSE;
-  sares->id = htonl(id);
+  sares->id = id;
   sares->server_ip = sr->ip; // don't have to include htonl because sr->ip is already network-byte order
   sares->tcpport = htons(sr->tcp_port);
   sares->max_x = sr->max_x;
