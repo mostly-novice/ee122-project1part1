@@ -1,0 +1,7 @@
+**UDP transmission attempt:1.
+**LOC Resp - TYPE: 1 IPADDR: 7f000001 UDPPORT: 1a05.
+**UDP transmission attempt:1.
+**UDP transmission attempt:2.
+**UDP transmission attempt:3.
+**UDP transmission attempt:4.
+Error: did not obtain response from server.
