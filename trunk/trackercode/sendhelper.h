@@ -7,12 +7,7 @@ void createslrespond(server_record * sr, int id, char buffer[]){
   slr->server_ip = sr->ip;
   slr->udpport = htons(sr->udp_port);
 
-  printf("id:%d\n",sr->ip);
-  printf("port:%d\n",sr->udp_port);
-
   unsigned char*tosent = (unsigned char *) slr;
-  printMessage(slr,STORAGE_LOCATION_RESPONSE_SIZE);
-  printMessage(tosent,STORAGE_LOCATION_RESPONSE_SIZE);
   int i;
   for(i = 0; i < STORAGE_LOCATION_RESPONSE_SIZE;i++){
     buffer[i] = tosent[i];
@@ -34,7 +29,6 @@ void createsarespond(server_record * sr, int id,char buffer[]){
   sares->min_y = sr->min_y;
 
   unsigned char*tosent = (unsigned char *) sares;
-  printMessage(tosent,SERVER_AREA_RESPONSE_SIZE);
   int i;
   for(i = 0; i < SERVER_AREA_RESPONSE_SIZE;i++){
     buffer[i] = tosent[i];
