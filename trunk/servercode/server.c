@@ -290,7 +290,7 @@ int main(int argc, char* argv[]){
 
 						char msgtype = udp_read_buffer[0];
 						unsigned int ip = udpsin.sin_addr.s_addr;
-						int id = (udp_read_buffer[1]<<24)+(udp_read_buffer[2]<<16)+(udp_read_buffer[3]<<8)+udp_read_buffer[4];
+					        unsigned int id = (udp_read_buffer[4]<<24)+(udp_read_buffer[3]<<16)+(udp_read_buffer[2]<<8)+udp_read_buffer[1];
 						int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
 
 						// ON DUPLICATE
