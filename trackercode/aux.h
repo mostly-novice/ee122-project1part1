@@ -3,7 +3,7 @@ int ceiling(double x){
 }
 
 int initsr(server_record ** sr_array, char * configpath){
-  FILE * file = fopen("server.config","r");
+  FILE * file = fopen(configpath,"r");
   char server_ip[30];
   int tcp_port;
   int udp_port;
