@@ -1,0 +1,5 @@
+**UDP transmission attempt:1.
+**UDP transmission attempt:2.
+**UDP transmission attempt:3.
+**UDP transmission attempt:4.
+Error: did not obtain response from server.

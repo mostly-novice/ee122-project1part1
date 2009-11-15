@@ -1,0 +1,8 @@
+**UDP transmission attempt:1.
+**LOC Resp - TYPE: 1 IPADDR: 7f000001 UDPPORT: 1a06.
+**UDP transmission attempt:1.
+**State Resp - TYPE: 5 NAME: bobby HP: 114 EXP: 0 XLOC: 74 YLOC: 8.
+**UDP transmission attempt:1.
+**Area Resp - TYPE: 3 IPADDR: 7f000001 PORT: 1e5c MINX: 49 MAXX: 99 MINY: 0 MAXY: 99
+Welcome to the tiny world of warcraft.
+bobby: location=(74,8), HP=114, EXP=0

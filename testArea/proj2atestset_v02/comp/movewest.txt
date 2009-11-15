@@ -1,0 +1,22 @@
+**UDP transmission attempt:1.
+**LOC Resp - TYPE: 1 IPADDR: 7f000001 UDPPORT: 1a07.
+**UDP transmission attempt:1.
+**State Resp - TYPE: 5 NAME: bobby HP: 114 EXP: 0 XLOC: 74 YLOC: 8.
+**UDP transmission attempt:1.
+**Area Resp - TYPE: 3 IPADDR: 7f000001 PORT: 1e5d MINX: 49 MAXX: 99 MINY: 0 MAXY: 99
+Welcome to the tiny world of warcraft.
+bobby: location=(74,8), HP=114, EXP=0
+bobby: location=(71,8), HP=114, EXP=0
+bobby: location=(68,8), HP=114, EXP=0
+bobby: location=(65,8), HP=114, EXP=0
+bobby: location=(62,8), HP=114, EXP=0
+bobby: location=(59,8), HP=114, EXP=0
+bobby: location=(56,8), HP=114, EXP=0
+bobby: location=(53,8), HP=114, EXP=0
+Cannot see past x-boundary at: 49.
+bobby: location=(50,8), HP=114, EXP=0
+Cannot see past x-boundary at: 49.
+**UDP transmission attempt:1.
+**Area Resp - TYPE: 3 IPADDR: 7f000001 PORT: 15b1 MINX: 0 MAXX: 48 MINY: 0 MAXY: 99
+bobby: location=(47,8), HP=114, EXP=0
+Cannot see past x-boundary at: 48.
