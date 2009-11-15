@@ -69,6 +69,8 @@ int main(int argc, char* argv[]){
   server_record ** sr_array = malloc(sizeof(*sr_array)*100);
   message_record ** mr_array = malloc(sizeof(*mr_array)*MAX_MESSAGE_RECORD);
 
+  printf("WTF IS THIS?\n");
+
   int server_count;
 
 
@@ -156,6 +158,7 @@ int main(int argc, char* argv[]){
 	    close(i); // bye!
 	  } else {
 	    char msgtype = read_buffer[0];
+	    printMessage(read_buffer,read_bytes);
 	    unsigned int ip = clientaddr.sin_addr.s_addr;
 	    unsigned int id = (read_buffer[4]<<24)+(read_buffer[3]<<16)+(read_buffer[2]<<8)+read_buffer[1];
 	    int dup = findDup(mr_array,id,ip); // return the index of the duplicate message
@@ -202,6 +205,7 @@ int main(int argc, char* argv[]){
 	      }
 	      mr_array[oldest] = new_mr;
 	      oldest = (oldest + 1)%MAX_MESSAGE_RECORD;
+	      printMessage(slrespond,STORAGE_LOCATION_RESPONSE_SIZE);
 
 	      int sent_bytes = sendto(i,
 				      slrespond,
