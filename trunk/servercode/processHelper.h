@@ -11,6 +11,8 @@ Player * process_login_request(char errorcode, int sock, int fdmax, fd_set login
 	// make a new instance of Player
 	Player * newplayer = (Player *) malloc(sizeof(Player));
 
+	printf("hp in process_login_request: %d\n",hp);
+
 	memcpy(newplayer->name,name,10);
 	newplayer->hp = ntohl(hp);
 	newplayer->exp = ntohl(exp);
@@ -160,7 +162,7 @@ int process_invalid_state(char payload_c[]){
 }
 
 // Processing PLAYER_STATE_REQUEST
-int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int oldest,message_record** mr_array){
+int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int oldest,message_record** mr_array,int badMessageTypeFlag){
 	printf("Processing PLAYER_STATE_REQUEST\n");
 	FILE * file = fopen(name,"r"); // open the file
 	int hp;
@@ -194,6 +196,9 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int o
 	// At this point, we should have all the data to form the PLAYER_STATE_RESPONSE
 	char buffer[PLAYER_STATE_RESPONSE_SIZE];
 	createpsr(name,hp,exp,x,y,id,buffer);
+	if(badMessageTypeFlag){
+		buffer[0]=135;
+	}
 	udpunicast(udpsock,targetsin,buffer,PLAYER_STATE_RESPONSE_SIZE);
 
 	// Set the last message sent for Dup checking.
@@ -212,16 +217,21 @@ int process_psr(char* name,int udpsock,struct sockaddr_in targetsin,int id,int o
 }
 
 // process_ssr : process save state request
-int process_ss_request(char* name,int hp, int exp, char x, char y, int udpsock, struct sockaddr_in targetsin, int id,int oldest,message_record** mr_array){
+int process_ss_request(char* name,int hp, int exp, char x, char y, int udpsock, struct sockaddr_in targetsin, int id,int oldest,message_record** mr_array,int faultyErrorCodeFlag){
 	printf("Processing SAVE_STATE_REQUEST\n");
 	FILE * file = fopen(name,"w+");
+	int myhp = ntohl(hp);
+	int myexp = ntohl(exp);
 
 	char success = 0;
 
 	// Save the file
 	if(file == NULL) success = 1;
+	if(faultyErrorCodeFlag){
+		success=9;
+	}
 	printf("Writing player %s with hp %d exp %d x %d y %d\n",name,hp,exp,x,y);
-	fprintf(file,"%d %d %d %d",hp,exp,x,y);
+	fprintf(file,"%d %d %d %d",myhp,myexp,x,y);
 	fclose(file);
 
 	// Send the save_state_response
