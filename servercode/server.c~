@@ -310,7 +310,7 @@ int main(int argc, char* argv[]){
 
                             if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
                                 struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
-                                process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array);
+                                process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array,badMessageTypeFlag);
 
 				// Check to see whether this is malformed
 
