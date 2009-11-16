@@ -1,7 +1,4 @@
 #!/bin/sh
 gcc -o tracker -w -lsocket -lnsl tracker.c;
-cp tracker ../testArea;
-cp server.config ../testArea;
-cd ../testArea;
 ./tracker -f server.config -p 1234;
 

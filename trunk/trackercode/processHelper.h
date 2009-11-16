@@ -184,8 +184,6 @@ int process_invalid_state(char payload_c[]){
 }
 
 int updateHP(LinkedList * mylist){
-  printf(".");
-  fflush(stdout);
   if(mylist->head == NULL){
     return 0; // nothing updated
   }

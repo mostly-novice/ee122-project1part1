@@ -180,12 +180,16 @@ int main(int argc, char* argv[]){
 	    } else if(msgtype==STORAGE_LOCATION_REQUEST){
 	      struct storage_location_request * slr = (struct storage_location_request*) read_buffer;
 
-	      // TODO: Check the ID
+	      // TODO: Check the ID -- <-- can this be done?
 	      char * name = slr->name;
 	      int hashval = hash(name);
 	      int srindex = hashval % server_count; // The index of "DB" server
 
 	      // TODO: Check if name is malformed
+	      if(check_player_name(name)==0){
+		      break;
+	      }
+
 	      server_record * sr = sr_array[srindex];
 	      char slrespond[STORAGE_LOCATION_RESPONSE_SIZE];
 
@@ -218,6 +222,10 @@ int main(int argc, char* argv[]){
 	    } else if(msgtype==SERVER_AREA_REQUEST){
 	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
 	      // TODO: Check if the value in the package is valid
+	      // check x and y
+	      if( sareq->x<0 || sareq->x>99 || sareq->y<0 || sareq->y>99 ){
+		      break;
+	      }
 	      int server_id = findServer(sareq->x,server_count,sr_array);
 	      server_record * sr = sr_array[server_id];
 
@@ -248,6 +256,9 @@ int main(int argc, char* argv[]){
 		perror("Tracker - sendto failed: Handling server area request");
 		abort();
 	      }
+	    }else{ // MALFORMED
+		on_malformed_udp(2);
+	    	break;
 	    }
 	  }
 	} // end of checking the listener
