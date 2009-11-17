@@ -283,9 +283,6 @@ int main(int argc, char* argv[]){
 							expected_data_len,
 							0,
 							(struct sockaddr*)&udpsin,&sin_len);
-					if(read_bytes != PLAYER_STATE_REQUEST_SIZE && read_bytes != SAVE_STATE_REQUEST_SIZE){
-						on_malformed_udp(1);
-					}else{
 
 						if(read_bytes < 0){
 							perror("Server - Recvfrom Failed - read_bytes return -1\n");
@@ -318,28 +315,40 @@ int main(int argc, char* argv[]){
 							}else{	// NOT A DUPLICATE
 
 								if(udp_read_buffer[0] == PLAYER_STATE_REQUEST){
-									struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
-									//check name
-									if(check_player_name(psr->name)==0){	
-										printf("PLAYER NAME IS BAD\n");
-										continue;
+									if(read_bytes != PLAYER_STATE_REQUEST_SIZE){
+										on_malformed_udp(1);
+									}else{
+										struct player_state_request * psr = (struct player_state_request *) udp_read_buffer;
+										//check name
+										if(check_player_name(psr->name)==0){	
+											printf("PLAYER NAME IS BAD\n");
+											continue;
+										}
+										process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array,badMessageTypeFlag);
 									}
-									process_psr(psr->name,udplistener,udpsin,psr->id,oldest,mr_array,badMessageTypeFlag);
 
 
 								} else if (udp_read_buffer[0] == SAVE_STATE_REQUEST){
-									struct save_state_request * ssr = (struct save_state_request *) udp_read_buffer;
-									//check name
-									if(check_player_name(ssr->name)==0){
-										printf("PLAYER NAME IS BAD\n");
-										continue;
+
+									if(read_bytes != SAVE_STATE_REQUEST_SIZE){
+										on_malformed_udp(1);
+									}else{
+										struct save_state_request * ssr = (struct save_state_request *) udp_read_buffer;
+
+										//check name
+										if(check_player_name(ssr->name)==0){
+											printf("PLAYER NAME IS BAD\n");
+											continue;
+										}
+
+										//check stats
+										if(check_malformed_stats(ssr->x,ssr->y,ntohl(ssr->hp),ntohl(ssr->exp))!=0){
+											printf("STATS ARE BAD\n");
+											continue;
+										}
+
+										process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,oldest,mr_array,faultyErrorCodeFlag);
 									}
-									//check stats
-									if(check_malformed_stats(ssr->x,ssr->y,ntohl(ssr->hp),ntohl(ssr->exp))!=0){
-										printf("STATS ARE BAD\n");
-										continue;
-									}
-									process_ss_request(ssr->name,ssr->hp,ssr->exp,ssr->x,ssr->y,udplistener,udpsin,ssr->id,oldest,mr_array,faultyErrorCodeFlag);
 								}else{
 									// malformed type
 									on_malformed_udp(3);
@@ -352,7 +361,6 @@ int main(int argc, char* argv[]){
 
 							}
 						}
-					}
 
 					/*
 					 *	Handling Data from TCP PORT
