@@ -753,6 +753,10 @@ int main(int argc, char* argv[]){
 	    sendto(udpsock,tosent,SAVE_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
 	  
 	  } else {
+	    if (s_fault == FAULT_INVALID_MSGTYPE_ON_SLR)
+	      sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
+	    else if (s_fault == FAULT_INVALID_MSGTYPE_ON_PSR)
+	      sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
 	    fprintf(stderr,"THIS SHOULD NEVER HAPPEN.\n");
 	  }
 
