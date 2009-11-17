@@ -178,7 +178,7 @@ int main(int argc, char* argv[]){
 	      
 	    } else if(msgtype==STORAGE_LOCATION_REQUEST){
 	      if(read_bytes != STORAGE_LOCATION_REQUEST_SIZE){
-		on_udp_malformed(1);
+		on_malformed_udp(1);
 		continue;
 	      }
 	      struct storage_location_request * slr = (struct storage_location_request*) read_buffer;
@@ -222,7 +222,7 @@ int main(int argc, char* argv[]){
 
 	    } else if(msgtype==SERVER_AREA_REQUEST){
 	      if(read_bytes != SERVER_AREA_REQUEST_SIZE){
-		on_udp_malformed(1);
+		on_malformed_udp(1);
 		continue;
 	      }
 	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
