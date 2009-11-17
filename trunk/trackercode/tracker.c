@@ -66,7 +66,7 @@ int main(int argc, char* argv[]){
   int done = 0;
   int status;
   char * configpath;
-  server_record ** sr_array = malloc(sizeof(*sr_array)*100);
+  server_record ** sr_array = malloc(sizeof(*sr_array)*1000);
   message_record ** mr_array = malloc(sizeof(*mr_array)*MAX_MESSAGE_RECORD);
 
   int server_count;
@@ -79,8 +79,7 @@ int main(int argc, char* argv[]){
   struct sockaddr_in sin;
   struct sockaddr_in clientaddr;
   memset(&sin, 0, sizeof(sin));
-  
-
+ 
   if(argc != 5){ printf("Usage: ./tracker -f <configuration file> -p port");  exit(0);}
 
   // Initilizations
@@ -178,14 +177,16 @@ int main(int argc, char* argv[]){
 
 	      
 	    } else if(msgtype==STORAGE_LOCATION_REQUEST){
+	      if(read_bytes != STORAGE_LOCATION_REQUEST_SIZE){
+		on_udp_malformed(1);
+		continue;
+	      }
 	      struct storage_location_request * slr = (struct storage_location_request*) read_buffer;
 
-	      // TODO: Check the ID -- <-- can this be done?
 	      char * name = slr->name;
 	      int hashval = hash(name);
 	      int srindex = hashval % server_count; // The index of "DB" server
 
-	      // TODO: Check if name is malformed
 	      if(check_player_name(name)==0){
 		      break;
 	      }
@@ -220,8 +221,11 @@ int main(int argc, char* argv[]){
 	      }
 
 	    } else if(msgtype==SERVER_AREA_REQUEST){
+	      if(read_bytes != SERVER_AREA_REQUEST_SIZE){
+		on_udp_malformed(1);
+		continue;
+	      }
 	      struct server_area_request * sareq = (struct server_area_request*) read_buffer;
-	      // TODO: Check if the value in the package is valid
 	      // check x and y
 	      if( sareq->x<0 || sareq->x>99 || sareq->y<0 || sareq->y>99 ){
 		      break;
@@ -243,7 +247,7 @@ int main(int argc, char* argv[]){
 		free(mr_array[oldest]);
 	      }
 	      mr_array[oldest] = new_mr;
-	      oldest = (oldest + 1)%MAX_MESSAGE_RECORD;
+	      oldest = (oldest+1)%MAX_MESSAGE_RECORD;
 
 	      int sent_bytes = sendto(i,
 				      sarespond,
@@ -257,8 +261,8 @@ int main(int argc, char* argv[]){
 		abort();
 	      }
 	    }else{ // MALFORMED
-		on_malformed_udp(2);
-	    	break;
+	      on_malformed_udp(2);
+	      continue;
 	    }
 	  }
 	} // end of checking the listener
