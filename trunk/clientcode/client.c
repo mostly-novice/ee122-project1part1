@@ -101,7 +101,7 @@ unsigned int removePlayer(char * name, LinkedList * list)
   Node * temp;
 	
   /* check for empty list */
-  if(!curr){ printf("The list is empty"); return 0; }
+  if(!curr){ return 0; }
 
   /* check if datum is in head of list */
   if(strcmp(list->head->datum->name,name)==0){
@@ -489,10 +489,9 @@ int main(int argc, char* argv[]){
 
       int ip = sendersin.sin_addr.s_addr;
       char msgtype = read_buffer[0];
-      if(tobeack->message != NULL && (tobeack->ip!=ip || tobeack->id!=currentID-1)){
+      if(tobeack->message != NULL && (tobeack->ip!=ip || tobeack->id != currentID-1)){
 	if (tobeack->ip!=ip) on_invalid_udp_source();
 	if (tobeack->id!=currentID-1) on_malformed_udp();
-	printf("something is weird\n");
       } else {
 	// Free the last tobeack
 	if(tobeack->message) free(tobeack->message);
@@ -500,6 +499,11 @@ int main(int argc, char* argv[]){
 	tobeack->ip = sendersin.sin_addr.s_addr;
 
 	if (msgtype == STORAGE_LOCATION_RESPONSE){
+	  if(read_bytes != STORAGE_LOCATION_RESPONSE_SIZE){
+	    on_malformed_udp();
+	    continue;
+	  }
+
 	  if(sendersin.sin_addr.s_addr != trackersin.sin_addr.s_addr || sendersin.sin_port != trackersin.sin_port){
 	    on_invalid_udp_source();
 	    continue; // Skip this packet
@@ -545,22 +549,26 @@ int main(int argc, char* argv[]){
 	  // Reset the attempt
 	  attempt = 1;
 	  on_udp_attempt(attempt);
+	  
+	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID,tobeack);
 
-	  if(s_fault==FAULT_INVALID_X_ON_PSR) sendsarequest(self->x+100,self->y,udpsock,&trackersin,currentID,tobeack);
-	  else sendsarequest(self->x,self->y,udpsock,&trackersin,currentID,tobeack);
 	  waitForAck=1;
 	  currentID++;
 
 	  tv->tv_usec = pow(2,attempt-1)*100000;
 	  
 	} else if (msgtype == SERVER_AREA_RESPONSE){
+	  if(read_bytes != SERVER_AREA_RESPONSE_SIZE){
+	    on_malformed_udp();
+	    continue;
+	  }
+
 	  if(sendersin.sin_addr.s_addr != trackersin.sin_addr.s_addr || sendersin.sin_port != trackersin.sin_port){
 	    on_invalid_udp_source();
 	    continue; // Skip this packet
 	  }
-	  struct server_area_response * sares = (struct server_area_response *) read_buffer;
 
-	  // Check for udp_malformed
+	  struct server_area_response * sares = (struct server_area_response *) read_buffer;
 
 	  // Set tv to be null so that we don't have to wait anymore
 	  tv->tv_sec = 5;
@@ -594,6 +602,12 @@ int main(int argc, char* argv[]){
 	  int status = handlelogin(self->name,tcpsock);
 	  
 	} else if (msgtype == SAVE_STATE_RESPONSE){
+
+	  if(read_bytes != SAVE_STATE_RESPONSE_SIZE){
+	    on_malformed_udp();
+	    continue;
+	  }
+
 	  if(loggingOut){
 	    if(sendersin.sin_addr.s_addr != dbserversin.sin_addr.s_addr || sendersin.sin_port != dbserversin.sin_port){
 	      on_invalid_udp_source();
