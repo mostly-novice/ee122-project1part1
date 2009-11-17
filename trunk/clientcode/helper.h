@@ -198,7 +198,12 @@ int sendslrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
 
   char * tosent = (char*) slr;
   tobeack->message = tosent;
-  int sent_bytes = sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)sin,sizeof(*sin));
+  int sent_bytes;
+  if(s_fault == FAULT_INVALID_SIZE_ON_SLR){
+    sent_bytes = sendto(udpsock,tosent,4,0,(struct sockaddr*)sin,sizeof(*sin));
+  } else {
+    sent_bytes = sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)sin,sizeof(*sin));
+  }
   if(sent_bytes < 0) {
     perror("sendslrequest: sendto failed.");
   }
@@ -214,12 +219,11 @@ int sendpsrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
 
   char * tosent = (char*) psr;
   tobeack->message = tosent;
-  int sent_bytes = sendto(udpsock,
-			  tosent,
-			  PLAYER_STATE_REQUEST_SIZE,
-			  0,
-			  (struct sockaddr*)sin,
-			  sizeof(*sin));
+  int sent_bytes;
+  if(s_fault == FAULT_INVALID_SIZE_ON_PSR)
+    sent_bytes = sendto(udpsock,tosent,28,0,(struct sockaddr*)sin,sizeof(*sin));
+  else
+    sent_bytes = sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)sin,sizeof(*sin));
   if(sent_bytes < 0) {
     perror("sendpsrequest - SEND PLAYER STATE REQUEST: sendto failed.");
   }

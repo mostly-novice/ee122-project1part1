@@ -156,6 +156,8 @@ void initialize(Player * object,char * name, int hp, int exp, int x, int y){
   object->y = y;
 }
 
+int s_fault;
+
 #include "aux.h"
 #include "helper.h"
 #include "payloadHelper.h"
@@ -218,7 +220,6 @@ int main(int argc, char* argv[]){
   fd_set writefds;
 
   // Debugging
-  int s_fault;
   int lossycount = 0;
 
   struct sockaddr_in trackersin,serversin,dbserversin,sendersin;
@@ -734,10 +735,16 @@ int main(int argc, char* argv[]){
 	  // Resend the attempt
 	  char * tosent = tobeack->message;
 	  if(tosent[0] == STORAGE_LOCATION_REQUEST){
-	    sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
+	    if(s_fault == FAULT_INVALID_SIZE_ON_SLR)
+	      sendto(udpsock,tosent,4,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
+	    else
+	      sendto(udpsock,tosent,STORAGE_LOCATION_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));
 	  
 	  } else if(tosent[0] == PLAYER_STATE_REQUEST){
-	    sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
+	    if(s_fault == FAULT_INVALID_SIZE_ON_PSR)
+	      sendto(udpsock,tosent,28,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
+	    else
+	      sendto(udpsock,tosent,PLAYER_STATE_REQUEST_SIZE,0,(struct sockaddr*)&dbserversin,sizeof(dbserversin));
 	  
 	  } else if(tosent[0] == SERVER_AREA_REQUEST){
 	    sendto(udpsock,tosent,SERVER_AREA_REQUEST_SIZE,0,(struct sockaddr*)&trackersin,sizeof(trackersin));

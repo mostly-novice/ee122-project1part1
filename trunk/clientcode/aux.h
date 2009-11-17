@@ -60,9 +60,13 @@ void freeMessageRecords(message_record ** mr_array){
 }
 
 enum {
-  FAULT_TYPE_NONE = 0,
+  FAULT_TYPE_NONE=0,
   FAULT_INVALID_MSGTYPE,
   FAULT_LOSSY_CHANNEL,
+  FAULT_INVALID_SIZE_ON_SLR,
+  FAULT_INVALID_SIZE_ON_PSR,
+  FAULT_INVALID_SIZE_ON_SARES,
+  FAULT_INVALID_SIZE_ON_SSR,
   FAULT_DUPLICATE_ON_SLR,
   FAULT_DUPLICATE_ON_PSR,
   FAULT_DUPLICATE_ON_SAR,
@@ -78,9 +82,17 @@ static void usage()
           "              %d=%s\n"
           "              %d=%s\n"
           "              %d=%s\n"
+          "              %d=%s\n"
+	  "              %d=%s\n"
+          "              %d=%s\n"
+          "              %d=%s\n"
           "              %d=%s\n",
           FAULT_INVALID_MSGTYPE, "Invalid msgtype on ssr",
 	  FAULT_LOSSY_CHANNEL, "Lossy channel",
+	  FAULT_INVALID_SIZE_ON_SLR,    "Invalid UDP size on slr",
+	  FAULT_INVALID_SIZE_ON_PSR,    "Invalid UDP size on psr",
+	  FAULT_INVALID_SIZE_ON_SARES,  "Invalid UDP size on sares",
+	  FAULT_INVALID_SIZE_ON_SSR,    "Invalid UDP size on ssr",
           FAULT_DUPLICATE_ON_SLR, "Send slrequest twice",
 	  FAULT_DUPLICATE_ON_PSR, "Send psrequest twice",
 	  FAULT_DUPLICATE_ON_SAR, "Send sarequest twice",
