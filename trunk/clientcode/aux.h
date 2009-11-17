@@ -61,6 +61,8 @@ void freeMessageRecords(message_record ** mr_array){
 
 enum {
   FAULT_TYPE_NONE=0,
+  FAULT_INVALID_MSGTYPE_ON_SLR,
+  FAULT_INVALID_MSGTYPE_ON_PSR,
   FAULT_INVALID_MSGTYPE,
   FAULT_LOSSY_CHANNEL,
   FAULT_INVALID_SIZE_ON_SLR,
@@ -86,8 +88,10 @@ static void usage()
 	  "              %d=%s\n"
           "              %d=%s\n"
           "              %d=%s\n"
+	  "              %d=%s\n"
           "              %d=%s\n",
-          FAULT_INVALID_MSGTYPE, "Invalid msgtype on ssr",
+          FAULT_INVALID_MSGTYPE_ON_SLR, "Invalid message type on slr",
+	  FAULT_INVALID_MSGTYPE_ON_PSR,  "Invalid message type on psr",
 	  FAULT_LOSSY_CHANNEL, "Lossy channel",
 	  FAULT_INVALID_SIZE_ON_SLR,    "Invalid UDP size on slr",
 	  FAULT_INVALID_SIZE_ON_PSR,    "Invalid UDP size on psr",

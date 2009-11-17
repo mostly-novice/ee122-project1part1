@@ -192,7 +192,10 @@ int handlelogout(char * name,int sock){
 
 int sendslrequest(char * name, int udpsock,struct sockaddr_in * sin, int currentID,message_record * tobeack){
   struct storage_location_request * slr = (struct storage_location_request *) malloc(sizeof(struct storage_location_request));
-  slr->message_type = STORAGE_LOCATION_REQUEST;
+  if (s_fault == FAULT_INVALID_MSGTYPE_ON_SLR)
+    slr->message_type = 20;
+  else
+    slr->message_type = STORAGE_LOCATION_REQUEST;
   slr->id = currentID;
   strcpy(slr->name,name);
 
@@ -213,7 +216,10 @@ int sendslrequest(char * name, int udpsock,struct sockaddr_in * sin, int current
 // Sending the PLAYER_STATE_REQUEST
 int sendpsrequest(char * name, int udpsock,struct sockaddr_in * sin, int currentID, message_record * tobeack){
   struct player_state_request * psr = (struct player_state_request *) malloc(sizeof(struct player_state_request));
-  psr->message_type = PLAYER_STATE_REQUEST;
+  if (s_fault == FAULT_INVALID_MSGTYPE_ON_PSR)
+    psr->message_type = 20;
+  else
+    psr->message_type = PLAYER_STATE_REQUEST;
   psr->id = currentID;
   strcpy(psr->name,name);
 
