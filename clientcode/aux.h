@@ -66,6 +66,7 @@ enum {
   FAULT_DUPLICATE_ON_SLR,
   FAULT_DUPLICATE_ON_PSR,
   FAULT_DUPLICATE_ON_SAR,
+  FAULT_INVALID_X_ON_PSR
 };
 
 static void usage()
@@ -82,5 +83,7 @@ static void usage()
 	  FAULT_LOSSY_CHANNEL, "Lossy channel",
           FAULT_DUPLICATE_ON_SLR, "Send slrequest twice",
 	  FAULT_DUPLICATE_ON_PSR, "Send psrequest twice",
-	  FAULT_DUPLICATE_ON_SAR, "Send sarequest twice");
+	  FAULT_DUPLICATE_ON_SAR, "Send sarequest twice",
+	  FAULT_INVALID_X_ON_PSR, "Send a bad x to the tracker"
+	  );
 }

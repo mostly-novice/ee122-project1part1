@@ -174,7 +174,7 @@ int handlelogout(char * name,int sock){
   hdr->len = htons(0x4);
   hdr->msgtype = LOGOUT;
 
-  char * header_c = (char*) hdr;
+  unsigned char * header_c = (unsigned char *) hdr;
   unsigned char tosent[4];
 
   for(j = 0; j < 4; j++){

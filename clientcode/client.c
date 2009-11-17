@@ -500,7 +500,6 @@ int main(int argc, char* argv[]){
 	tobeack->ip = sendersin.sin_addr.s_addr;
 
 	if (msgtype == STORAGE_LOCATION_RESPONSE){
-	  // Check whether it is the correct source
 	  if(sendersin.sin_addr.s_addr != trackersin.sin_addr.s_addr || sendersin.sin_port != trackersin.sin_port){
 	    on_invalid_udp_source();
 	    continue; // Skip this packet
@@ -529,10 +528,16 @@ int main(int argc, char* argv[]){
 	  tv->tv_usec = pow(2,attempt-1)*100000;
 
 	} else if (msgtype == PLAYER_STATE_RESPONSE){
+	  if(read_bytes != PLAYER_STATE_RESPONSE_SIZE){
+	    on_malformed_udp();
+	    continue;
+	  }
+
 	  if(sendersin.sin_addr.s_addr != dbserversin.sin_addr.s_addr || sendersin.sin_port != dbserversin.sin_port){
 	    on_invalid_udp_source();
 	    continue; // Skip this packet
 	  }
+
 	  struct player_state_response * psr = (struct player_state_response *) read_buffer;
 	  initialize(self,psr->name,ntohl(psr->hp),ntohl(psr->exp),psr->x,psr->y);
 	  on_state_resp(msgtype,psr->name,ntohl(psr->hp),ntohl(psr->exp),psr->x,psr->y);
@@ -541,7 +546,8 @@ int main(int argc, char* argv[]){
 	  attempt = 1;
 	  on_udp_attempt(attempt);
 
-	  sendsarequest(self->x,self->y,udpsock,&trackersin,currentID,tobeack);
+	  if(s_fault==FAULT_INVALID_X_ON_PSR) sendsarequest(self->x+100,self->y,udpsock,&trackersin,currentID,tobeack);
+	  else sendsarequest(self->x,self->y,udpsock,&trackersin,currentID,tobeack);
 	  waitForAck=1;
 	  currentID++;
 
